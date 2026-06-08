@@ -67,4 +67,6 @@ Sigue estos pasos para poner en marcha el proyecto GestoBar en tu entorno local:
     La aplicación React se iniciará en `http://localhost:5173` (o un puerto similar).
 
 ---
+link a google drive del proyecto: https://drive.google.com/drive/folders/1tj34rwTHCi_T4z4ruS5XIXRmIHcRczZR?usp=sharing
+
 *Última actualización: Junio 2026*
