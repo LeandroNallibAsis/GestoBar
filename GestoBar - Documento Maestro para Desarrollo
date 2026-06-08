@@ -1,0 +1,461 @@
+# GestoBar - Documento Maestro para Desarrollo
+
+## Objetivo
+
+Actuar como desarrollador principal del proyecto GestoBar, respetando la arquitectura, convenciones, tecnologías y objetivos definidos en este documento.
+
+Toda decisión técnica deberá priorizar:
+
+* Escalabilidad.
+* Mantenibilidad.
+* Claridad del código.
+* Rendimiento.
+* Seguridad.
+* Facilidad de aprendizaje para desarrolladores principiantes.
+
+---
+
+# Información General
+
+## Nombre del Proyecto
+
+GestoBar
+
+## Tipo de Proyecto
+
+Sistema SaaS para gestión de bares, restaurantes y negocios gastronómicos.
+
+## Estado Actual
+
+Etapa de diseño y desarrollo inicial (MVP).
+
+## Objetivo Principal
+
+Desarrollar una plataforma SaaS que permita administrar:
+
+* Caja.
+* Inventario.
+* Pedidos.
+* Mesas.
+* Empleados.
+* Roles y permisos.
+* Historial de ventas.
+* Reportes.
+* Configuración del negocio.
+
+La plataforma deberá poder evolucionar posteriormente hacia:
+
+* Multi sucursal.
+* Delivery.
+* Integración con WhatsApp.
+* Aplicación móvil.
+* Tablets para pedidos en mesa.
+* Inteligencia Artificial para análisis de ventas.
+
+---
+
+# Stack Tecnológico Oficial
+
+## Frontend
+
+* React
+* TypeScript
+* Vite
+* TailwindCSS
+* React Router
+* React Hook Form
+* Zod
+
+## Backend
+
+* Node.js
+* Fastify
+* TypeScript
+
+## Base de Datos
+
+* PostgreSQL
+
+## ORM
+
+* Prisma
+
+## Control de Versiones
+
+* Git
+* GitHub
+
+---
+
+# Arquitectura General
+
+```text
+Frontend React
+        ↓
+API REST Fastify
+        ↓
+Services
+        ↓
+Repositories
+        ↓
+PostgreSQL
+```
+
+---
+
+# Arquitectura SaaS
+
+El sistema debe diseñarse desde el inicio como Multi-Tenant.
+
+Todas las entidades principales deberán estar asociadas a:
+
+```ts
+businessId
+```
+
+Esto permitirá que múltiples negocios utilicen la plataforma sin compartir información entre ellos.
+
+---
+
+# MVP Obligatorio
+
+La primera versión debe incluir:
+
+## Autenticación
+
+* Login.
+* Logout.
+* Recuperación de contraseña.
+* JWT.
+
+## Gestión de Usuarios
+
+* Crear usuarios.
+* Editar usuarios.
+* Desactivar usuarios.
+* Asignar roles.
+
+## Roles y Permisos
+
+Roles iniciales:
+
+* SuperAdmin
+* BusinessOwner
+* Manager
+* Employee
+
+Los permisos deben poder configurarse dinámicamente.
+
+Ejemplo:
+
+* Crear pedidos.
+* Modificar pedidos.
+* Gestionar inventario.
+* Gestionar caja.
+* Ver reportes.
+* Administrar usuarios.
+
+---
+
+## Gestión de Mesas
+
+El sistema debe permitir:
+
+* Crear mesas.
+* Editar mesas.
+* Eliminar mesas.
+* Ver estado de mesa.
+
+Estados:
+
+* Libre
+* Ocupada
+* Reservada
+* Pendiente de cobro
+
+---
+
+## Editor Visual del Salón
+
+Debe existir una cuadrícula configurable.
+
+Funcionalidades:
+
+* Crear áreas seleccionando bloques de celdas.
+* Definir colores para cada área.
+* Ejemplos:
+
+  * Interior
+  * Patio
+  * Terraza
+  * VIP
+
+Implementar Drag & Drop para:
+
+* Mesas
+* Sillas
+
+La interfaz debe ser intuitiva y visual.
+
+---
+
+## Pedidos
+
+Permitir:
+
+* Crear pedido.
+* Modificar pedido.
+* Cancelar pedido.
+* Cerrar pedido.
+* Asociar pedido a mesa.
+
+---
+
+## Inventario
+
+Permitir:
+
+* Alta de productos.
+* Modificación.
+* Baja lógica.
+* Control de stock.
+
+---
+
+## Caja
+
+Permitir:
+
+* Apertura.
+* Cierre.
+* Registro de ingresos.
+* Registro de egresos.
+
+---
+
+## Historial de Ventas
+
+Registrar:
+
+* Fecha.
+* Productos.
+* Usuario responsable.
+* Total.
+* Método de pago.
+
+---
+
+## Dashboard
+
+Mostrar:
+
+* Ventas por día.
+* Ventas por semana.
+* Ventas por mes.
+* Productos más vendidos.
+* Combinaciones de productos más vendidas.
+
+---
+
+# Diseño UI/UX
+
+Estilo visual oficial:
+
+Dark Neon Business Dashboard
+
+Características:
+
+* Fondo principal Niebla de Río (#2F3D46).
+* Color principal Oliva Fresca (#A3B31A).
+* Color secundario Césped Nuevo (#39FF8B).
+* Diseño minimalista.
+* Apariencia corporativa premium.
+* Mucho espacio visual.
+* Tarjetas con bordes redondeados de 16px.
+* Bordes sutiles iluminados.
+* Glow discreto.
+* Tipografía Inter.
+* Iconografía lineal moderna.
+* Dashboard limpio y profesional.
+
+Evitar:
+
+* Estética gamer.
+* Cyberpunk.
+* Sobrecarga visual.
+* Exceso de animaciones.
+
+La interfaz debe transmitir:
+
+* Profesionalismo.
+* Innovación.
+* Control operativo.
+* Confianza.
+
+---
+
+# Convenciones de Código
+
+## Idioma
+
+Todo el código debe escribirse en inglés.
+
+Incluye:
+
+* Variables.
+* Funciones.
+* Clases.
+* Interfaces.
+* Componentes.
+* Tablas.
+* Columnas.
+
+Los textos para usuarios pueden estar en español.
+
+---
+
+## Nombres
+
+### Componentes
+
+PascalCase
+
+```ts
+InventoryPage.tsx
+OrderCard.tsx
+```
+
+### Funciones
+
+camelCase
+
+```ts
+createOrder()
+calculateTotal()
+```
+
+### Constantes
+
+UPPER_SNAKE_CASE
+
+```ts
+MAX_TABLES
+DEFAULT_TAX_RATE
+```
+
+---
+
+# Comentarios Obligatorios
+
+Dado que el propietario del proyecto necesita comprender el funcionamiento interno del sistema, el código deberá incluir comentarios descriptivos en todas las secciones importantes.
+
+Especialmente en:
+
+* Servicios.
+* Consultas a base de datos.
+* Hooks personalizados.
+* Lógica de negocio.
+* Validaciones.
+* Algoritmos.
+* Procesos complejos.
+
+Ejemplo:
+
+```ts
+// Validate if the user has permission to create orders
+if (!hasPermission) {
+    throw new Error("Permission denied");
+}
+```
+
+Además:
+
+* Explicar el propósito de funciones complejas.
+* Explicar decisiones técnicas importantes.
+* Explicar estructuras de datos poco evidentes.
+* Mantener comentarios actualizados.
+
+No generar código sin explicar qué hace cada sección relevante.
+
+---
+
+# Organización del Proyecto
+
+Mantener una estructura ordenada.
+
+Frontend:
+
+```text
+src/
+
+components/
+pages/
+layouts/
+hooks/
+services/
+contexts/
+routes/
+types/
+utils/
+assets/
+styles/
+```
+
+Backend:
+
+```text
+server/
+
+modules/
+auth/
+users/
+businesses/
+tables/
+orders/
+inventory/
+cash-register/
+reports/
+
+middleware/
+database/
+shared/
+utils/
+```
+
+No crear archivos innecesarios.
+
+No duplicar lógica.
+
+Mantener separación clara de responsabilidades.
+
+---
+
+# Buenas Prácticas
+
+Aplicar:
+
+* SOLID.
+* DRY.
+* KISS.
+* Clean Code.
+
+Priorizar legibilidad sobre optimizaciones prematuras.
+
+---
+
+# Instrucciones para la IA
+
+Antes de generar código:
+
+1. Explicar brevemente la solución propuesta.
+2. Explicar la arquitectura involucrada.
+3. Explicar dónde debe ubicarse cada archivo.
+4. Explicar posibles impactos sobre módulos existentes.
+
+Después de generar código:
+
+1. Explicar qué hace cada archivo.
+2. Explicar las funciones principales.
+3. Explicar posibles mejoras futuras.
+
+El objetivo es que cualquier desarrollador pueda entender y mantener el proyecto fácilmente.

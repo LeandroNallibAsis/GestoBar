@@ -1,0 +1,17 @@
+{
+  "name": "gestobar",
+  "private": true,
+  "packageManager": "pnpm@8.12.0",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:frontend": "pnpm --workspace --filter frontend dev",
+    "build:frontend": "pnpm --workspace --filter frontend build",
+    "preview:frontend": "pnpm --workspace --filter frontend preview",
+    "dev:backend": "pnpm --workspace --filter backend dev",
+    "build:backend": "pnpm --workspace --filter backend build",
+    "start:backend": "pnpm --workspace --filter backend start"
+  }
+}

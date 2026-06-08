@@ -1,0 +1,182 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SuperAdmin
+  BusinessOwner
+  Manager
+  Employee
+}
+
+enum TableStatus {
+  FREE
+  OCCUPIED
+  RESERVED
+  PENDING_PAYMENT
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  OTHER
+}
+
+enum OrderStatus {
+  OPEN
+  CLOSED
+  CANCELLED
+}
+
+enum CashEntryType {
+  OPENING
+  CLOSING
+  SALE
+  EXPENSE
+  ADJUSTMENT
+}
+
+model Business {
+  id              String           @id @default(cuid())
+  name            String
+  createdAt       DateTime         @default(now())
+  users           User[]
+  tables          Table[]
+  products        Product[]
+  categories      Category[]
+  orders          Order[]
+  cashEntries     CashEntry[]
+  salonLayouts    SalonLayout[]
+  rolePermissions RolePermission[]
+}
+
+model SalonLayout {
+  id          String       @id @default(cuid())
+  businessId  String       @unique
+  business    Business     @relation(fields: [businessId], references: [id])
+  rows        Int          @default(8)
+  columns     Int          @default(12)
+  areas       SalonArea[]
+  createdAt   DateTime     @default(now())
+}
+
+model SalonArea {
+  id         String      @id @default(cuid())
+  layoutId   String
+  layout     SalonLayout @relation(fields: [layoutId], references: [id])
+  name       String
+  color      String
+  cells      Json
+  createdAt  DateTime    @default(now())
+}
+
+model User {
+  id          String       @id @default(cuid())
+  email       String       @unique
+  name        String?
+  password    String
+  role        UserRole
+  isActive    Boolean      @default(true)
+  businessId  String
+  business    Business     @relation(fields: [businessId], references: [id])
+  cashEntries CashEntry[]
+  createdAt   DateTime     @default(now())
+}
+
+model Permission {
+  id           String           @id @default(cuid())
+  key          String           @unique
+  description  String?
+  createdAt    DateTime         @default(now())
+  roleMappings RolePermission[]
+}
+
+model RolePermission {
+  id           String    @id @default(cuid())
+  role         UserRole
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  permissionId String
+  businessId   String
+  business     Business   @relation(fields: [businessId], references: [id])
+  createdAt    DateTime   @default(now())
+
+  @@unique([businessId, role, permissionId])
+}
+
+model Table {
+  id          String      @id @default(cuid())
+  name        String
+  status      TableStatus @default(FREE)
+  businessId  String
+  business    Business    @relation(fields: [businessId], references: [id])
+  createdAt   DateTime    @default(now())
+  orders      Order[]
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  isActive    Boolean   @default(true)
+  businessId  String
+  business    Business  @relation(fields: [businessId], references: [id])
+  products    Product[]
+  createdAt   DateTime  @default(now())
+}
+
+model Product {
+  id          String       @id @default(cuid())
+  name        String
+  price       Float
+  stock       Int          @default(0)
+  isActive    Boolean      @default(true)
+  businessId  String
+  business    Business     @relation(fields: [businessId], references: [id])
+  categoryId  String?
+  category    Category?    @relation(fields: [categoryId], references: [id])
+  orderItems  OrderItem[]
+  createdAt   DateTime     @default(now())
+}
+
+model Order {
+  id            String       @id @default(cuid())
+  tableId       String?
+  table         Table?       @relation(fields: [tableId], references: [id])
+  businessId    String
+  business      Business     @relation(fields: [businessId], references: [id])
+  status        OrderStatus  @default(OPEN)
+  items         OrderItem[]
+  total         Float        @default(0)
+  paymentMethod PaymentMethod?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+}
+
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+}
+
+model CashEntry {
+  id          String        @id @default(cuid())
+  businessId  String
+  business    Business      @relation(fields: [businessId], references: [id])
+  userId      String
+  user        User          @relation(fields: [userId], references: [id])
+  type        CashEntryType
+  amount      Float
+  orderId     String?
+  note        String?
+  createdAt   DateTime      @default(now())
+}

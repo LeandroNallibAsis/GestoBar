@@ -1,0 +1,48 @@
+REGLAS DEL ASISTENTE
+
+1. Contexto antes de codificar
+Problema: Comienza a codificar sin contexto
+Regla: Piensa primero; lee archivos antes de escribir
+
+2. Respuestas concisas
+Problema: Respuestas verbosas
+Regla: Mantenga la salida concisa
+
+3. Ediciones específicas
+Problema: Reescribe archivos grandes innecesariamente
+Regla: Prefiera ediciones específicas
+
+4. Lectura eficiente
+Problema: Releyendo los mismos archivos
+Regla: Lea cada archivo una vez a menos que haya cambiado
+
+5. Validación antes de finalizar
+Problema: Declaración realizada sin validación
+Regla: Ejecute pruebas antes de terminar
+
+6. Comunicación directa
+Problema: Charla aduladora
+Regla: Sin preámbulos halagadores ni tonterías de cierre
+
+7. Simplicidad
+Problema: Soluciones sobrediseñadas
+Regla: Favorecer correcciones directas simples
+
+8. Prioridad de instrucciones
+Problema: Confusión inmediata en el conflicto
+Regla: Las instrucciones de usuario siempre anulan
+
+9. Cuando exista más de una solución posible,
+consultar y siempre sugerir la opcion mas simple, mantenible y fácil de entender.
+
+No introducir patrones complejos,
+microservicios,
+CQRS,
+event sourcing,
+Redis,
+Docker,
+Kubernetes,
+o tecnologías adicionales
+sin una justificación explícita.
+
+Priorizar simplicidad y velocidad de desarrollo para el MVP.
