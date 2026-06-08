@@ -7,6 +7,7 @@
     "backend"
   ],
   "scripts": {
+    "dev": "pnpm run /^dev:/",
     "dev:frontend": "pnpm --workspace --filter frontend dev",
     "build:frontend": "pnpm --workspace --filter frontend build",
     "preview:frontend": "pnpm --workspace --filter frontend preview",
