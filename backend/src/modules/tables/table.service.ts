@@ -14,7 +14,9 @@ export class TableService {
 
   static async createTable(data: {
     name: string;
-    status: TableStatus;
+    capacity?: number;
+    status?: TableStatus;
+    linkedTableId?: string;
     businessId: string;
   }): Promise<Table> {
     return tableRepository.createTable(data);
@@ -22,7 +24,9 @@ export class TableService {
 
   static async updateTable(id: string, businessId: string, data: {
     name?: string;
+    capacity?: number;
     status?: TableStatus;
+    linkedTableId?: string | null;
   }): Promise<Table> {
     return tableRepository.updateTable(id, businessId, data);
   }

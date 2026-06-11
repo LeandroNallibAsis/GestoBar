@@ -2,9 +2,9 @@ import type { FastifyInstance } from 'fastify';
 import { CategoryService } from './category.service';
 import { JwtUser } from '../auth/auth.types';
 import {
-  createCategoryBodySchema,
   categoryListResponseSchema,
   categoryResponseSchema,
+  createCategoryBodySchema,
   updateCategoryBodySchema,
   categoryParamsSchema
 } from './category.schema';
@@ -17,36 +17,12 @@ export async function categoryRoutes(server: FastifyInstance, opts: { authentica
     {
       preValidation: [authenticate],
       schema: {
-        response: {
-          200: categoryListResponseSchema
-        }
+        response: { 200: categoryListResponseSchema }
       }
     },
     async (request) => {
       const user = request.user as JwtUser;
-      return CategoryService.listCategories(user.businessId);
-    }
-  );
-
-  server.get(
-    '/categories/:id',
-    {
-      preValidation: [authenticate],
-      schema: {
-        params: categoryParamsSchema,
-        response: {
-          200: categoryResponseSchema
-        }
-      }
-    },
-    async (request, reply) => {
-      const user = request.user as JwtUser;
-      const { id } = request.params as { id: string };
-      const category = await CategoryService.getCategoryById(id, user.businessId);
-      if (!category) {
-        return reply.status(404).send({ message: 'Category not found' });
-      }
-      return category;
+      return CategoryService.list(user.businessId);
     }
   );
 
@@ -56,20 +32,13 @@ export async function categoryRoutes(server: FastifyInstance, opts: { authentica
       preValidation: [authenticate],
       schema: {
         body: createCategoryBodySchema,
-        response: {
-          201: categoryResponseSchema
-        }
+        response: { 201: categoryResponseSchema }
       }
     },
     async (request, reply) => {
       const user = request.user as JwtUser;
       const { name } = request.body as { name: string };
-
-      const category = await CategoryService.createCategory({
-        name,
-        businessId: user.businessId
-      });
-
+      const category = await CategoryService.create(name, user.businessId);
       return reply.status(201).send(category);
     }
   );
@@ -81,38 +50,14 @@ export async function categoryRoutes(server: FastifyInstance, opts: { authentica
       schema: {
         params: categoryParamsSchema,
         body: updateCategoryBodySchema,
-        response: {
-          200: categoryResponseSchema
-        }
+        response: { 200: categoryResponseSchema }
       }
     },
-    async (request, reply) => {
+    async (request) => {
       const user = request.user as JwtUser;
       const { id } = request.params as { id: string };
-      const { name } = request.body as { name?: string };
-
-      const updated = await CategoryService.updateCategory(id, user.businessId, { name });
-
-      return reply.send(updated);
-    }
-  );
-
-  server.post(
-    '/categories/:id/deactivate',
-    {
-      preValidation: [authenticate],
-      schema: {
-        params: categoryParamsSchema,
-        response: {
-          200: categoryResponseSchema
-        }
-      }
-    },
-    async (request, reply) => {
-      const user = request.user as JwtUser;
-      const { id } = request.params as { id: string };
-      const deactivated = await CategoryService.deactivateCategory(id, user.businessId);
-      return reply.send(deactivated);
+      const data = request.body as { name?: string; isActive?: boolean };
+      return CategoryService.update(id, user.businessId, data);
     }
   );
 
@@ -121,14 +66,14 @@ export async function categoryRoutes(server: FastifyInstance, opts: { authentica
     {
       preValidation: [authenticate],
       schema: {
-        params: categoryParamsSchema
+        params: categoryParamsSchema,
+        response: { 200: { type: 'object', properties: { success: { type: 'boolean' } } } }
       }
     },
-    async (request, reply) => {
+    async (request) => {
       const user = request.user as JwtUser;
       const { id } = request.params as { id: string };
-      await CategoryService.deactivateCategory(id, user.businessId);
-      return reply.send({ success: true });
+      return CategoryService.delete(id, user.businessId);
     }
   );
 }

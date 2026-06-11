@@ -1,45 +1,49 @@
-export const productResponseSchema = {
+export const InventoryItemResponseSchema = {
   type: 'object',
   properties: {
     id: { type: 'string' },
     name: { type: 'string' },
-    price: { type: 'number' },
+    cost: { type: 'number' },
     stock: { type: 'number' },
+    unit: { type: ['string', 'null'] },
     isActive: { type: 'boolean' },
-    categoryId: { type: 'string' },
+    categoryId: { type: ['string', 'null'] },
     businessId: { type: 'string' },
     category: { type: 'object' }
   },
-  required: ['id', 'name', 'price', 'stock', 'isActive', 'businessId']
+  required: ['id', 'name', 'cost', 'stock', 'isActive', 'businessId']
 };
 
-export const productListResponseSchema = {
+export const InventoryItemListResponseSchema = {
   type: 'array',
-  items: productResponseSchema
+  items: InventoryItemResponseSchema
 };
 
-export const createProductBodySchema = {
+export const createInventoryItemBodySchema = {
   type: 'object',
-  required: ['name', 'price', 'stock'],
+  required: ['name', 'cost'],
   properties: {
     name: { type: 'string', minLength: 1 },
-    price: { type: 'number', minimum: 0 },
+    unit: { type: 'string' },
+    cost: { type: 'number', minimum: 0 },
     stock: { type: 'number', minimum: 0 },
     categoryId: { type: 'string' }
   }
 };
 
-export const updateProductBodySchema = {
+export const updateInventoryItemBodySchema = {
   type: 'object',
   properties: {
     name: { type: 'string', minLength: 1 },
-    price: { type: 'number', minimum: 0 },
+    unit: { type: 'string' },
+    cost: { type: 'number', minimum: 0 },
     stock: { type: 'number', minimum: 0 },
+    isActive: { type: 'boolean' },
     categoryId: { type: 'string' }
   }
 };
 
-export const productParamsSchema = {
+export const InventoryItemParamsSchema = {
   type: 'object',
   required: ['id'],
   properties: {

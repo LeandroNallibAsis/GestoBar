@@ -38,7 +38,7 @@ interface DashboardData {
   dailyChart: Array<{ date: string; sales: number; orders: number }>;
 }
 
-const API_URL = 'http://localhost:3000';
+const API_URL = 'http://localhost:4000';
 
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -159,18 +159,20 @@ export default function Dashboard() {
         <div className="bg-[#3a4d59] rounded-lg p-6 border border-[#A3B31A]">
           <h2 className="text-xl font-bold text-[#A3B31A] mb-4">Ventas por Día (Últimos 7 días)</h2>
           <div className="h-64 bg-[#2F3D46] rounded p-4 flex items-end justify-between gap-2">
-            {dailyChart.map((point, idx) => (
+            {dailyChart.map((point, idx) => {
+              const maxSales = Math.max(...dailyChart.map(p => p.sales), 1); // Evita división por cero
+              return (
               <div key={idx} className="flex flex-col items-center gap-2 flex-1">
                 <div
                   className="w-full bg-[#39FF8B] rounded-t opacity-80 hover:opacity-100 transition"
                   style={{
-                    height: `${Math.max(20, (point.sales / Math.max(...dailyChart.map(p => p.sales))) * 100)}%`
+                    height: `${Math.max(10, (point.sales / maxSales) * 100)}%`
                   }}
                   title={`$${point.sales.toFixed(2)} - ${point.orders} pedidos`}
                 />
                 <div className="text-gray-400 text-xs">{point.date.slice(-2)}</div>
               </div>
-            ))}
+            )})}
           </div>
         </div>
 

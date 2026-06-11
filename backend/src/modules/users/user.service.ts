@@ -35,7 +35,11 @@ export class UserService {
     password?: string;
     isActive?: boolean;
   }): Promise<User> {
-    const updateData: Partial<User> = { ...data };
+    const updateData: Partial<Omit<User, 'id' | 'businessId' | 'createdAt' | 'updatedAt'>> = {};
+    
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.role !== undefined) updateData.role = data.role;
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
     if (data.password) {
       updateData.password = await AuthService.hashPassword(data.password);
     }

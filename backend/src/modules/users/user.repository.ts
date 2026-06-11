@@ -23,7 +23,15 @@ export const userRepository = {
     role: UserRole;
     businessId: string;
   }): Promise<User> => {
-    return prisma.user.create({ data });
+    return prisma.user.create({
+      data: {
+        email: data.email,
+        name: data.name ?? data.email.split('@')[0],
+        password: data.password,
+        role: data.role,
+        businessId: data.businessId
+      }
+    });
   },
 
   updateUser: async (id: string, businessId: string, data: Partial<Omit<User, 'id' | 'businessId' | 'createdAt'>>): Promise<User> => {

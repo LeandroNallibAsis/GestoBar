@@ -1,0 +1,112 @@
+========================================================================
+ GUÍA DE ESTUDIO: ESTRUCTURA DEL PROYECTO Y UBICACIÓN DE TABLAS - GESTOBAR
+========================================================================
+
+Este documento sirve como material de estudio para tu exposición. Explica de forma sencilla cómo está organizado el código del proyecto, dónde se definen las tablas de la base de datos y cómo interactúan el Frontend (interfaz de usuario) y el Backend (servidor/lógica).
+
+---
+
+1. ARQUITECTURA GENERAL DEL PROYECTO
+------------------------------------------------------------------------
+El proyecto está estructurado como un Monorrepósito (Workspace) con dos partes principales conectadas:
+  - BACKEND (Servidor de API): Construido con Node.js, Fastify (framework web rápido) y Prisma (como ORM para comunicarse con PostgreSQL).
+  - FRONTEND (Interfaz Web): Construido con React, Vite, TypeScript y Tailwind CSS para los estilos.
+
+---
+
+2. ¿DÓNDE ESTÁN LAS TABLAS DE LA BASE DE DATOS? (EL ESQUEMA DE PRISMA)
+------------------------------------------------------------------------
+Toda la base de datos PostgreSQL se define y gestiona desde un único archivo central en el Backend:
+   Ruta del archivo:
+   📁 backend/prisma/schema.prisma
+
+En este archivo se definen las "Tablas" en forma de "Modelos" de Prisma. Las tablas más importantes para explicar en tu exposición son:
+
+   a) Business (Negocios / Comercios)
+      - Permite el multi-tenancy (soporte para múltiples bares independientes). Cada bar tiene su ID.
+      - Todos los demás datos (mesas, productos, pedidos) se enlazan a un BusinessId.
+
+   b) User (Usuarios / Empleados)
+      - Contiene los credenciales (email, contraseña encriptada) y el rol del usuario (BusinessOwner o Employee).
+
+   c) Table (Mesas)
+      - Representa las mesas físicas del salón.
+      - Campos clave: capacity (capacidad), status (FREE, OCCUPIED, RESERVED, PENDING_PAYMENT) y linkedTableId (usado para unir mesas).
+
+   d) Category (Categorías)
+      - Agrupa elementos. Tiene un campo "type" que define si es una categoría del MENÚ ("MENU") o del INVENTARIO ("INVENTORY").
+
+   e) InventoryItem (Artículos de Inventario)
+      - Stock de ingredientes o insumos del bar (ej: Kg de carne, botellas de gaseosa en depósito).
+
+   f) MenuItem (Platos/Bebidas del Menú)
+      - Productos con precio de venta directa al cliente (ej: Hamburguesa, Cerveza Tirada).
+
+   g) Order (Pedidos) y OrderItem (Detalle del Pedido)
+      - Order guarda la cabecera del pedido (tipo: mesa, llevar o delivery; estado: abierto, listo, pagado; total acumulado).
+      - OrderItem detalla qué MenuItem se pidió, en qué cantidad y a qué precio.
+
+   h) CashEntry (Libro de Caja)
+      - Registra entradas y salidas de dinero. Tipos de entrada: OPENING (apertura), CLOSING (cierre), SALE (ventas), EXPENSE (gastos) y ADJUSTMENT.
+
+   i) Permission, RolePermission y UserPermission
+      - Controlan qué puede hacer cada empleado de forma dinámica (ej: si puede ver la caja o solo crear pedidos).
+
+---
+
+3. ESTRUCTURA Y COMPONENTES DEL BACKEND
+------------------------------------------------------------------------
+El backend está organizado de forma modular. Dentro de la carpeta:
+   📁 backend/src/modules/
+
+Cada funcionalidad tiene su propio directorio con la siguiente división de responsabilidades (Patrón de 3 Capas + Rutas):
+  1. *.routes.ts (Rutas / Endpoints): Define las URLs de la API (ej: POST /orders, GET /tables).
+  2. *.schema.ts (Validación): Controla que los datos que envía el frontend sean correctos (ej: que el precio sea un número positivo).
+  3. *.service.ts (Lógica de Negocio): Contiene las reglas del bar (ej: calcular el total de un pedido, restar stock o validar si una mesa está libre).
+  4. *.repository.ts (Acceso a Base de Datos): Realiza las consultas directas usando Prisma (ej: `prisma.table.update`).
+
+Módulos Clave en backend/src/modules/:
+  - /auth: Login y generación del token seguro JWT.
+  - /users: CRUD de empleados y asignación de permisos personalizados.
+  - /tables: Gestión del estado de las mesas y lógica de unirlas/separarlas.
+  - /inventory: Lógica para productos del Menú, Inventario de stock y Categorías.
+  - /orders: Creación de comandas, cambio de estado de preparación y facturación.
+  - /cash: Control del flujo de caja, ingresos, egresos y ventas.
+  - /dashboard: Cálculo de estadísticas diarias (ventas totales, pedidos completados).
+
+---
+
+4. ESTRUCTURA Y COMPONENTES DEL FRONTEND
+------------------------------------------------------------------------
+El frontend es lo que el usuario ve en pantalla. Está ubicado en:
+   📁 frontend/src/
+
+Las secciones principales a explicar son:
+
+   a) Las Páginas (Ruta: 📁 frontend/src/pages/)
+      - Login.tsx: Pantalla de inicio de sesión con correo y contraseña.
+      - Dashboard.tsx: Vista principal con gráficos y tarjetas de ingresos, mesas ocupadas y comandas activas.
+      - InventoryPage.tsx: Gestión del stock físico de insumos del depósito.
+      - MenuPage.tsx: Gestión de la carta digital del local (platos y bebidas a la venta).
+      - TableManagement.tsx: Plano o listado de las mesas en tiempo real, permitiendo crearlas, cambiar su estado o enlazarlas.
+      - OrdersPage.tsx: Interfaz para que los mozos tomen pedidos, seleccionen platos del menú, agreguen notas de cocina y cobren las comandas.
+      - CashBookPage.tsx: Libro contable digital donde se ve el saldo diario y se ingresan gastos o retiros de efectivo.
+      - UsersPage.tsx: Panel donde el dueño del bar activa/desactiva empleados y modifica sus permisos con checkboxes en tiempo real.
+
+   b) Los Componentes Comunes (Ruta: 📁 frontend/src/components/)
+      - Sidebar.tsx: El menú lateral de navegación. Adapta sus opciones automáticamente ocultando los módulos para los cuales el empleado no tiene permiso.
+      - ProtectedRoute.tsx: Middleware visual que impide que usuarios no autenticados entren a la aplicación.
+
+   c) Servicios de API (Ruta: 📁 frontend/src/services/)
+      - Archivos con funciones `fetch` o `axios` que hacen las peticiones HTTP al backend (ej: pedir la lista de mesas o registrar un pago).
+
+---
+
+5. FLUJO DE DATOS (EJEMPLO PARA EXPLICAR EN LA EXPOSICIÓN)
+------------------------------------------------------------------------
+Cuando un mozo cobra un pedido en la mesa:
+1. FRONTEND: El mozo presiona "Cobrar Pedido" en `OrdersPage.tsx`. Esto dispara una llamada a la API (enviando el id del pedido).
+2. BACKEND (Rutas): La petición llega a `orders.routes.ts`.
+3. BACKEND (Servicio): `orders.service.ts` marca el pedido como `PAID`, libera la mesa asociada (pasa a `FREE`) y crea automáticamente una transacción de tipo `SALE` (Venta) en el libro de caja con el monto cobrado.
+4. BASE DE DATOS: Prisma actualiza los registros en las tablas `Order`, `Table` y `CashEntry`.
+5. FRONTEND: El backend responde con éxito, y la interfaz actualiza la mesa a color verde (libre) y suma el dinero al total del día en el Dashboard.

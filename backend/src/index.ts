@@ -5,10 +5,12 @@ import { config } from './config';
 import { prisma } from './prisma';
 import { authRoutes } from './modules/auth/auth.routes';
 import { userRoutes } from './modules/users/user.routes';
+import { userPermissionRoutes } from './modules/users/user-permission.routes';
 import { tableRoutes } from './modules/tables/table.routes';
 import { salonRoutes } from './modules/salon/salon.routes';
 import { orderRoutes } from './modules/orders/order.routes';
-import { productRoutes } from './modules/inventory/product.routes';
+import { MenuItemRoutes } from './modules/inventory/menu-item.routes';
+import { InventoryItemRoutes } from './modules/inventory/inventory-item.routes';
 import { categoryRoutes } from './modules/inventory/category.routes';
 import { cashRoutes } from './modules/cash/cash.routes';
 import { dashboardRoutes } from './modules/dashboard/dashboard.routes';
@@ -46,10 +48,12 @@ server.get('/', async () => {
 // Register modules with routes.
 server.register(authRoutes, { authenticate });
 server.register(userRoutes, { authenticate });
+server.register(userPermissionRoutes, { authenticate });
 server.register(tableRoutes, { authenticate });
 server.register(salonRoutes, { authenticate });
 server.register(orderRoutes, { authenticate });
-server.register(productRoutes, { authenticate });
+server.register(MenuItemRoutes, { authenticate });
+server.register(InventoryItemRoutes, { authenticate });
 server.register(categoryRoutes, { authenticate });
 server.register(cashRoutes, { authenticate });
 server.register(dashboardRoutes, { authenticate });

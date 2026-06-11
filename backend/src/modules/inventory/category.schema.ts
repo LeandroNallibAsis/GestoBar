@@ -5,10 +5,7 @@ export const categoryResponseSchema = {
     name: { type: 'string' },
     isActive: { type: 'boolean' },
     businessId: { type: 'string' },
-    products: {
-      type: 'array',
-      items: { type: 'object' }
-    }
+    createdAt: { type: 'string', format: 'date-time' }
   },
   required: ['id', 'name', 'isActive', 'businessId']
 };
@@ -29,7 +26,8 @@ export const createCategoryBodySchema = {
 export const updateCategoryBodySchema = {
   type: 'object',
   properties: {
-    name: { type: 'string', minLength: 1 }
+    name: { type: 'string', minLength: 1 },
+    isActive: { type: 'boolean' }
   }
 };
 

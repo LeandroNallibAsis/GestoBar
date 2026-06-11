@@ -12,8 +12,10 @@ export const orderResponseSchema = {
   type: 'object',
   properties: {
     id: { type: 'string' },
-    tableId: { type: 'string' },
+    tableId: { type: ['string', 'null'] },
     businessId: { type: 'string' },
+    type: { type: 'string' },
+    deliveryAddress: { type: ['string', 'null'] },
     status: { type: 'string' },
     items: {
       type: 'array',
@@ -28,6 +30,13 @@ export const orderResponseSchema = {
       }
     },
     total: { type: 'number' },
+    waiter: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' }
+      }
+    },
     createdAt: { type: 'string' }
   },
   required: ['id', 'businessId', 'status', 'items', 'total', 'createdAt']
@@ -43,6 +52,8 @@ export const createOrderBodySchema = {
   required: ['items'],
   properties: {
     tableId: { type: 'string' },
+    type: { type: 'string' },
+    deliveryAddress: { type: 'string' },
     items: {
       type: 'array',
       minItems: 1,

@@ -1,37 +1,39 @@
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
-import SalonEditor from './pages/SalonEditor';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import InventoryPage from './pages/InventoryPage';
+import MenuPage from './pages/MenuPage';
+import TableManagement from './pages/TableManagement';
+import OrdersPage from './pages/OrdersPage';
+import UsersPage from './pages/UsersPage';
+import CashBookPage from './pages/CashBookPage';
+import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
 
-const Home = () => (
-  <section className="rounded-2xl border border-[#A3B31A]/20 bg-[#24303A] p-8 shadow-glow">
-    <h1 className="text-3xl font-semibold text-[#A3B31A]">GestoBar</h1>
-    <p className="mt-3 max-w-2xl text-slate-300">
-      Frontend scaffold for the GestoBar dashboard with the salon editor module ready.
-    </p>
-  </section>
-);
-
-const App = () => {
+export default function App() {
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-[#2F3D46] text-white">
-        <main className="mx-auto max-w-7xl p-6">
-          <nav className="mb-6 flex flex-wrap items-center gap-4 rounded-2xl border border-[#A3B31A]/20 bg-[#24303A] p-4 shadow-glow">
-            <Link className="rounded-2xl bg-[#39FF8B]/10 px-4 py-2 font-semibold text-[#39FF8B] transition hover:bg-[#39FF8B]/20" to="/">
-              Home
-            </Link>
-            <Link className="rounded-2xl bg-[#39FF8B]/10 px-4 py-2 font-semibold text-[#39FF8B] transition hover:bg-[#39FF8B]/20" to="/salon-editor">
-              Salon Editor
-            </Link>
-          </nav>
+    <Router>
+      <Routes>
+        {/* Rutas Públicas */}
+        <Route path="/login" element={<Login />} />
 
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/salon-editor" element={<SalonEditor />} />
-          </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+        {/* Rutas Protegidas */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<Layout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/pedidos" element={<OrdersPage />} />
+            <Route path="/mesas" element={<TableManagement />} />
+            <Route path="/inventario" element={<InventoryPage />} />
+            <Route path="/menu" element={<MenuPage />} />
+            <Route path="/caja" element={<CashBookPage />} />
+            <Route path="/usuarios" element={<UsersPage />} />
+          </Route>
+        </Route>
+
+        {/* Redirecciones por defecto */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Router>
   );
-};
-
-export default App;
+}

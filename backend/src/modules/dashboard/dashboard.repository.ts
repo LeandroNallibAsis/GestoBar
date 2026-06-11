@@ -1,100 +1,93 @@
 import { prisma } from '../../prisma';
+import { OrderStatus, CashEntryType } from '@prisma/client';
 
-// Repository layer for dashboard metrics and analytics.
 export const dashboardRepository = {
   getSalesMetrics: async (businessId: string, startDate: Date, endDate: Date) => {
-    const orders = await prisma.order.findMany({
+    const result = await prisma.order.aggregate({
       where: {
         businessId,
-        status: 'CLOSED',
-        createdAt: {
-          gte: startDate,
-          lte: endDate
-        }
+        status: OrderStatus.PAID,
+        createdAt: { gte: startDate, lte: endDate }
       },
-      include: { items: true }
+      _sum: { total: true },
+      _count: { id: true }
     });
 
-    const totalSales = orders.reduce((sum, order) => sum + order.total, 0);
-    const totalOrders = orders.length;
-    const averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+    const totalSales = result._sum.total || 0;
+    const totalOrders = result._count.id || 0;
 
     return {
       totalSales,
       totalOrders,
-      averageOrderValue,
-      orders
+      averageOrderValue: totalOrders > 0 ? totalSales / totalOrders : 0
     };
   },
 
   getTopProducts: async (businessId: string, startDate: Date, endDate: Date, limit: number = 5) => {
-    const items = await prisma.orderItem.findMany({
+      const groupedItems = await prisma.orderItem.groupBy({
+      by: ['productId'],
       where: {
         order: {
           businessId,
-          status: 'CLOSED',
-          createdAt: {
-            gte: startDate,
-            lte: endDate
-          }
+          status: OrderStatus.PAID,
+          createdAt: { gte: startDate, lte: endDate }
         }
       },
-      include: { product: true, order: true }
+      _sum: { quantity: true },
+      _count: { orderId: true },
+      orderBy: { _sum: { quantity: 'desc' } },
+      take: limit
     });
 
-    const productMap = new Map<string, { product: any; totalQuantity: number; totalRevenue: number; orders: number }>();
-
-    for (const item of items) {
-      const key = item.product.id;
-      if (!productMap.has(key)) {
-        productMap.set(key, {
-          product: item.product,
-          totalQuantity: 0,
-          totalRevenue: 0,
-          orders: 0
+    return Promise.all(
+      groupedItems.map(async (item) => {
+        const product = await prisma.menuItem.findUnique({
+          where: { id: item.productId },
+          select: { id: true, name: true, price: true }
         });
-      }
-      const data = productMap.get(key)!;
-      data.totalQuantity += item.quantity;
-      data.totalRevenue += item.price * item.quantity;
-      data.orders += 1;
-    }
 
-    return Array.from(productMap.values())
-      .sort((a, b) => b.totalRevenue - a.totalRevenue)
-      .slice(0, limit);
+        const items = await prisma.orderItem.findMany({
+          where: {
+            productId: item.productId,
+            order: {
+              businessId,
+              status: OrderStatus.PAID,
+              createdAt: { gte: startDate, lte: endDate }
+            }
+          }
+        });
+
+        const totalRevenue = items.reduce((sum, i) => sum + (i.quantity * i.price), 0);
+
+        return {
+          product: product!,
+          totalQuantity: item._sum.quantity || 0,
+          totalRevenue,
+          orders: item._count.orderId
+        };
+      })
+    );
   },
 
   getCashMetrics: async (businessId: string, startDate: Date, endDate: Date) => {
-    const [openings, closings, expenses, sales, adjustments] = await Promise.all([
-      prisma.cashEntry.aggregate({
-        where: { businessId, type: 'OPENING', createdAt: { gte: startDate, lte: endDate } },
-        _sum: { amount: true }
-      }),
-      prisma.cashEntry.aggregate({
-        where: { businessId, type: 'CLOSING', createdAt: { gte: startDate, lte: endDate } },
-        _sum: { amount: true }
-      }),
-      prisma.cashEntry.aggregate({
-        where: { businessId, type: 'EXPENSE', createdAt: { gte: startDate, lte: endDate } },
-        _sum: { amount: true }
-      }),
-      prisma.cashEntry.aggregate({
-        where: { businessId, type: 'SALE', createdAt: { gte: startDate, lte: endDate } },
-        _sum: { amount: true }
-      }),
-      prisma.cashEntry.aggregate({
-        where: { businessId, type: 'ADJUSTMENT', createdAt: { gte: startDate, lte: endDate } },
-        _sum: { amount: true }
-      })
-    ]);
+    const entries = await prisma.cashEntry.groupBy({
+      by: ['type'],
+      where: {
+        businessId,
+        createdAt: { gte: startDate, lte: endDate }
+      },
+      _sum: { amount: true }
+    });
+
+    const findAmount = (type: CashEntryType) => 
+      entries.find(e => e.type === type)?._sum.amount || 0;
 
     return {
-      totalOpening: openings._sum.amount || 0,
-      totalClosing: closings._sum.amount || 0,
-      totalExpenses: expenses._sum.amount || 0,
-      totalSalesRecorded: sales._sum.amount || 0,
-      totalAdjustments: adjustments._sum.amount || 0
+      totalOpening: findAmount(CashEntryType.OPENING),
+      totalClosing: findAmount(CashEntryType.CLOSING),
+      totalExpenses: findAmount(CashEntryType.EXPENSE),
+      totalSalesRecorded: findAmount(CashEntryType.SALE),
+      totalAdjustments: findAmount(CashEntryType.ADJUSTMENT)
     };
   },
 
@@ -103,61 +96,45 @@ export const dashboardRepository = {
       where: { businessId },
       include: {
         orders: {
-          where: { status: 'CLOSED' }
+          where: { status: OrderStatus.PAID },
+          select: { total: true }
         }
       }
     });
 
-    return tables.map((table) => ({
-      id: table.id,
-      name: table.name,
-      status: table.status,
-      totalOrders: table.orders.length,
-      totalRevenue: table.orders.reduce((sum, order) => sum + order.total, 0)
+    return tables.map(t => ({
+      id: t.id,
+      name: t.name,
+      status: t.status,
+      totalOrders: t.orders.length,
+      totalRevenue: t.orders.reduce((sum, o) => sum + o.total, 0)
     }));
   },
 
   getDailySalesChart: async (businessId: string, days: number = 7) => {
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-    startDate.setHours(0, 0, 0, 0);
-
-    const orders = await prisma.order.findMany({
-      where: {
-        businessId,
-        status: 'CLOSED',
-        createdAt: { gte: startDate }
-      },
-      select: {
-        total: true,
-        createdAt: true
-      }
-    });
-
-    const chartData: { date: string; sales: number; orders: number }[] = [];
-    const dataMap = new Map<string, { sales: number; orders: number }>();
-
-    for (const order of orders) {
-      const dateKey = order.createdAt.toISOString().split('T')[0];
-      if (!dataMap.has(dateKey)) {
-        dataMap.set(dateKey, { sales: 0, orders: 0 });
-      }
-      const data = dataMap.get(dateKey)!;
-      data.sales += order.total;
-      data.orders += 1;
-    }
-
-    for (let i = days; i >= 0; i--) {
+    const chart = [];
+    for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
-      const dateKey = date.toISOString().split('T')[0];
-      chartData.push({
-        date: dateKey,
-        sales: dataMap.get(dateKey)?.sales || 0,
-        orders: dataMap.get(dateKey)?.orders || 0
+      const start = new Date(date.setHours(0, 0, 0, 0));
+      const end = new Date(date.setHours(23, 59, 59, 999));
+
+      const stats = await prisma.order.aggregate({
+        where: {
+          businessId,
+          status: OrderStatus.PAID,
+          createdAt: { gte: start, lte: end }
+        },
+        _sum: { total: true },
+        _count: { id: true }
+      });
+
+      chart.push({
+        date: start.toISOString().split('T')[0],
+        sales: stats._sum.total || 0,
+        orders: stats._count.id || 0
       });
     }
-
-    return chartData;
+    return chart;
   }
 };

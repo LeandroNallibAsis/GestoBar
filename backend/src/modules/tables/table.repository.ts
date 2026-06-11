@@ -15,15 +15,19 @@ export const tableRepository = {
     return prisma.table.findFirst({ where: { id, businessId } });
   },
 
-  createTable: async (data: {
-    name: string;
-    status: TableStatus;
-    businessId: string;
-  }): Promise<Table> => {
-    return prisma.table.create({ data });
+  createTable: async (data: { name: string; capacity?: number; status?: TableStatus; linkedTableId?: string; businessId: string }): Promise<Table> => {
+    return prisma.table.create({
+      data: {
+        name: data.name,
+        capacity: data.capacity,
+        status: data.status || 'FREE',
+        linkedTableId: data.linkedTableId,
+        businessId: data.businessId
+      }
+    });
   },
 
-  updateTable: async (id: string, businessId: string, data: Partial<Omit<Table, 'id' | 'businessId' | 'createdAt'>>): Promise<Table> => {
+  updateTable: async (id: string, businessId: string, data: { name?: string; capacity?: number; status?: TableStatus; linkedTableId?: string | null }): Promise<Table> => {
     const result = await prisma.table.updateMany({
       where: { id, businessId },
       data

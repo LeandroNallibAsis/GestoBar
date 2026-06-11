@@ -2,17 +2,13 @@
   "name": "gestobar",
   "private": true,
   "packageManager": "pnpm@8.12.0",
-  "workspaces": [
-    "frontend",
-    "backend"
-  ],
-  "scripts": {
+"scripts": {
     "dev": "pnpm run /^dev:/",
-    "dev:frontend": "pnpm --workspace --filter frontend dev",
-    "build:frontend": "pnpm --workspace --filter frontend build",
-    "preview:frontend": "pnpm --workspace --filter frontend preview",
-    "dev:backend": "pnpm --workspace --filter backend dev",
-    "build:backend": "pnpm --workspace --filter backend build",
-    "start:backend": "pnpm --workspace --filter backend start"
+    "dev:frontend": "pnpm -F gestobar-frontend dev",
+    "dev:backend": "pnpm -F gestobar-backend dev",
+    "build:frontend": "pnpm -F gestobar-frontend build",
+    "preview:frontend": "pnpm -F gestobar-frontend preview",
+    "build:backend": "pnpm -F gestobar-backend build",
+    "start:backend": "pnpm -F gestobar-backend start"
   }
 }

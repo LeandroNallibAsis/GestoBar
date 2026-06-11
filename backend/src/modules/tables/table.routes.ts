@@ -70,9 +70,11 @@ export async function tableRoutes(server: FastifyInstance, opts: { authenticate:
         return reply.status(403).send({ message: 'Forbidden' });
       }
 
-      const { name, status } = request.body as { name: string; status: string };
+      const { name, capacity, linkedTableId, status } = request.body as { name: string; capacity?: number; linkedTableId?: string; status: string };
       const table = await TableService.createTable({
         name,
+        capacity,
+        linkedTableId,
         status: status as any,
         businessId: user.businessId
       });
@@ -98,9 +100,11 @@ export async function tableRoutes(server: FastifyInstance, opts: { authenticate:
       }
 
       const { id } = request.params as { id: string };
-      const data = request.body as { name?: string; status?: string };
+      const data = request.body as { name?: string; capacity?: number; linkedTableId?: string | null; status?: string };
       const updated = await TableService.updateTable(id, user.businessId, {
         name: data.name,
+        capacity: data.capacity,
+        linkedTableId: data.linkedTableId,
         status: data.status as any
       });
       return reply.send(updated);

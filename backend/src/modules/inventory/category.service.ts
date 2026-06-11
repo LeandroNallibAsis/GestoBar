@@ -1,32 +1,29 @@
 import { categoryRepository } from './category.repository';
 
-// Service layer for category business logic.
 export class CategoryService {
-  static async listCategories(businessId: string) {
+  static async list(businessId: string) {
     return categoryRepository.listByBusiness(businessId);
   }
 
-  static async getCategoryById(id: string, businessId: string) {
-    return categoryRepository.findById(id, businessId);
+  static async getById(id: string, businessId: string) {
+    const category = await categoryRepository.findById(id, businessId);
+    if (!category) throw new Error('Category not found');
+    return category;
   }
 
-  static async createCategory(data: { name: string; businessId: string }) {
-    if (!data.name || data.name.trim() === '') {
-      throw new Error('Category name is required');
+  static async create(name: string, businessId: string) {
+    if (!name.trim()) throw new Error('Name is required');
+    return categoryRepository.create({ name, businessId });
+  }
+
+  static async update(id: string, businessId: string, data: { name?: string; isActive?: boolean }) {
+    if (data.name !== undefined && !data.name.trim()) {
+      throw new Error('Name cannot be empty');
     }
-
-    return categoryRepository.createCategory(data);
+    return categoryRepository.update(id, businessId, data);
   }
 
-  static async updateCategory(id: string, businessId: string, data: { name?: string }) {
-    if (data.name !== undefined && (data.name === '' || !data.name.trim())) {
-      throw new Error('Category name is required');
-    }
-
-    return categoryRepository.updateCategory(id, businessId, data);
-  }
-
-  static async deactivateCategory(id: string, businessId: string) {
-    return categoryRepository.deactivateCategory(id, businessId);
+  static async delete(id: string, businessId: string) {
+    return categoryRepository.delete(id, businessId);
   }
 }

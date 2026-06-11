@@ -1,51 +1,75 @@
 # Estado Actual del Proyecto - GestoBar MVP
 
-Este documento resume las funcionalidades implementadas hasta el momento, organizadas por Historias de Usuario (HU) y sus respectivos archivos.
+Este documento resume las funcionalidades implementadas hasta el momento en el proyecto **GestoBar**, organizadas por módulos, bases de datos y la interfaz de usuario.
 
-## 1. Infraestructura y Multi-Tenancy (Base)
+---
 
-### HU01 & HU02: Autenticación y RBAC
-Base técnica operativa para el aislamiento de datos y control de acceso.
-- **Aislamiento por BusinessId:** Implementado en todos los servicios (Inventory, Dashboard).
-- **Endpoints de Auth:** `c:\Users\IK\Desktop\GestoBar\backend\src\modules\auth\auth.routes.ts` (Login y gestión de permisos).
-- **Consumo de JWT:** El frontend ya incluye el token en las cabeceras de las peticiones.
+## 1. Infraestructura Base, Multi-Tenancy y Seguridad
 
-### Base de Datos y Seed
-Estructura relacional completa y generador de datos de prueba.
-- **Esquema Prisma:** `c:\Users\IK\Desktop\GestoBar\backend\prisma\schema.prisma` (Modelos para Business, User, Table, Product, Order, CashEntry).
-- **Script de Seed:** `c:\Users\IK\Desktop\GestoBar\backend\prisma\seed.ts` (Carga inicial de comercio, admin, categorías, productos y mesas).
+### Autenticación y RBAC (Control de Acceso Basado en Roles)
+Base técnica operativa y UI de acceso implementada para asegurar los datos de cada negocio.
+- **Aislamiento por BusinessId:** Todos los registros en la base de datos pertenecen a un comercio específico (`businessId`), garantizando que un negocio no pueda ver ni modificar los datos de otro.
+- **Roles de Usuario (`UserRole`):** `SuperAdmin` (administración global), `BusinessOwner` (dueño del local con control total) y `Employee` (empleado con permisos específicos).
+- **Gestión de Permisos Dinámicos:** El dueño del negocio puede otorgar o revocar permisos específicos (ej. `orders:create`, `cash:view`) de forma individual para cada empleado desde la interfaz.
+- **Rutas de Auth (Backend):** `backend/src/modules/auth/auth.routes.ts`
+- **Página de Login (Frontend):** `frontend/src/pages/Login.tsx`
+- **Control de Rutas:** `frontend/src/components/ProtectedRoute.tsx` y `App.tsx` (redirigen según el token JWT y los permisos).
 
-## 2. Épica: Gestión de Salón y Pedidos (Backend)
+### Base de Datos y Persistencia
+- **Esquema de Prisma:** `backend/prisma/schema.prisma` (Define todos los modelos y relaciones en PostgreSQL).
+- **Script de Semillero (Seed):** `backend/prisma/seed.ts` (Inicializa roles, categorías iniciales, un negocio de prueba y el usuario administrador `admin@gestobar.com`).
 
-### HU11: Configuración de Mesas
-Estructura preparada para la distribución del salón.
-- **Modelo Table:** Incluye campos de `capacity` y `status` (FREE, OCCUPIED, PENDING_PAYMENT).
+---
 
-### HU04: Estructura de Comandas
-Base para el registro de pedidos vinculada a mozos.
-- **Relaciones:** Se añadió vinculación entre `Order` y `User` para auditoría de mozos.
+## 2. Gestión de Salón y Mesas
 
-## 3. Épica: Control de Menú e Inventario Básico
+### Mesas y Distribución del Salón
+- **Modelo de Mesas (`Table`):** Define el estado de las mesas (`FREE`, `OCCUPIED`, `RESERVED`, `PENDING_PAYMENT`).
+- **Unión de Mesas (Table Linking):** Permite vincular mesas dinámicamente (`linkedTableId`) para juntar mesas en el salón cuando hay grupos grandes.
+- **Interfaz del Salón:** `frontend/src/pages/TableManagement.tsx` (Permite ver el estado en tiempo real, crear mesas y unirlas/separarlas).
+- **Diseño del Salón (SalonLayout):** Estructura en base de datos para almacenar el mapa o layout interactivo del salón (`SalonLayout` y `Area`).
 
-### HU08: Gestión de Productos del Menú (CRUD Backend)
-Se ha completado la lógica de negocio y los endpoints para administrar el catálogo de productos con aislamiento por comercio.
-- **Esquemas de validación:** `c:\Users\IK\Desktop\GestoBar\backend\src\modules\inventory\product.schema.ts`
-- **Lógica de negocio:** `c:\Users\IK\Desktop\GestoBar\backend\src\modules\inventory\product.service.ts`
-- **Acceso a datos (Prisma):** `c:\Users\IK\Desktop\GestoBar\backend\src\modules\inventory\product.repository.ts`
-- **Rutas de la API:** `c:\Users\IK\Desktop\GestoBar\backend\src\modules\inventory\product.routes.ts`
+---
 
-### HU09: Descuento Automático de Stock
-Implementada la lógica para reducir existencias y validar disponibilidad.
-- **Servicio:** `c:\Users\IK\Desktop\GestoBar\backend\src\modules\inventory\product.service.ts` (Método `decrementStock`)
-- **Repositorio:** `c:\Users\IK\Desktop\GestoBar\backend\src\modules\inventory\product.repository.ts` (Operación atomica `decrement`)
+## 3. Inventario y Menú Comercial (Separados)
 
-## 4. Épica: Reportes y Dashboard Simple
+Anteriormente los productos y el inventario estaban unificados, lo cual era poco realista. Ahora se han separado en dos conceptos:
+- **Inventario (`InventoryItem`):** Materia prima o stock físico medible (ej. Kg de carne, litros de cerveza, unidades de panes).
+- **Menú (`MenuItem`):** Platos, bebidas y productos que se ofrecen al cliente final con un precio de venta (ej. "Lomo Completo", "Pinta de IPA").
+- **Categorías (`Category`):** Se separan por tipo `"MENU"` e `"INVENTORY"` para organizar correctamente ambos listados.
+- **Vistas del Frontend:**
+  - `frontend/src/pages/InventoryPage.tsx` (Control de stock, costo de adquisición y unidad de medida).
+  - `frontend/src/pages/MenuPage.tsx` (Gestión de platos expuestos a la venta y sus precios).
+- **Rutas y Servicios:** Ubicados bajo `backend/src/modules/inventory/`.
 
-### HU14: Dashboard de Métricas Clave Diarias
-Implementación completa de punta a punta (Backend + Frontend).
-- **Vista Principal:** `c:\Users\IK\Desktop\GestoBar\frontend\src\pages\Dashboard.tsx`
-- **Lógica Backend:** `c:\Users\IK\Desktop\GestoBar\backend\src\modules\dashboard\dashboard.service.ts`
-- **Endpoints API:** `c:\Users\IK\Desktop\GestoBar\backend\src\modules\dashboard\dashboard.routes.ts`
+---
+
+## 4. Toma de Pedidos y Comandas
+
+### Gestión de Pedidos (`Order` y `OrderItem`)
+Lógica completa para registrar el consumo del salón o pedidos para llevar/delivery.
+- **Tipos de Pedido:** `TABLE` (mesa), `TAKEAWAY` (para llevar), `DELIVERY` (con dirección de entrega).
+- **Estados del Pedido:** `OPEN`, `PREPARING`, `READY`, `DELIVERED`, `PAID`, `CANCELLED`.
+- **Integración con Menú:** Los pedidos se arman seleccionando elementos del **Menú** (`MenuItem`) y registrando cantidad, precio histórico y notas de preparación.
+- **Página de Pedidos:** `frontend/src/pages/OrdersPage.tsx` (Permite crear comandas, asociarlas a una mesa o mozo, cambiar su estado en tiempo real y facturarlas).
+
+---
+
+## 5. Módulo Financiero: Libro de Caja
+
+### Control de Caja Diaria (`CashEntry`)
+Registro detallado de todo el flujo monetario del negocio.
+- **Tipos de Movimiento:** `OPENING` (Apertura de caja), `CLOSING` (Cierre), `SALE` (Ventas automáticas al cobrar pedidos), `EXPENSE` (Gastos/salidas de dinero), `ADJUSTMENT` (Ajustes manuales).
+- **Página de Caja:** `frontend/src/pages/CashBookPage.tsx` (Muestra el saldo actual de caja, el historial de movimientos diarios y permite registrar ingresos y egresos manuales).
+
+---
+
+## 6. Reportes e Información Visual
+
+### Dashboard de Métricas
+- **Indicadores Clave:** Total de ventas del día, cantidad de pedidos activos, ocupación de mesas en tiempo real y flujo de caja resumido.
+- **Página Principal:** `frontend/src/pages/Dashboard.tsx`
+- **Endpoints del Dashboard:** `backend/src/modules/dashboard/`
 
 ---
 *Última actualización: Junio 2026*

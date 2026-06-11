@@ -22,7 +22,7 @@ export const authRepository = {
     return prisma.user.create({
       data: {
         email: data.email,
-        name: data.name,
+        name: data.name ?? data.email.split('@')[0],
         password: data.password,
         role: data.role,
         businessId: data.businessId

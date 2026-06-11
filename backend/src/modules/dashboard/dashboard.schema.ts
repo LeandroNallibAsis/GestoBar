@@ -2,9 +2,7 @@ export const metricsQuerySchema = {
   type: 'object',
   properties: {
     startDate: { type: 'string', format: 'date-time' },
-    endDate: { type: 'string', format: 'date-time' },
-    days: { type: 'number', minimum: 1 },
-    limit: { type: 'number', minimum: 1 }
+    endDate: { type: 'string', format: 'date-time' }
   }
 };
 
@@ -13,27 +11,28 @@ export const salesMetricsResponseSchema = {
   properties: {
     totalSales: { type: 'number' },
     totalOrders: { type: 'number' },
-    averageOrderValue: { type: 'number' },
-    orders: {
-      type: 'array',
-      items: { type: 'object' }
-    }
-  }
-};
-
-export const productMetricSchema = {
-  type: 'object',
-  properties: {
-    product: { type: 'object' },
-    totalQuantity: { type: 'number' },
-    totalRevenue: { type: 'number' },
-    orders: { type: 'number' }
+    averageOrderValue: { type: 'number' }
   }
 };
 
 export const topProductsResponseSchema = {
   type: 'array',
-  items: productMetricSchema
+  items: {
+    type: 'object',
+    properties: {
+      product: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          name: { type: 'string' },
+          price: { type: 'number' }
+        }
+      },
+      totalQuantity: { type: 'number' },
+      totalRevenue: { type: 'number' },
+      orders: { type: 'number' }
+    }
+  }
 };
 
 export const cashMetricsResponseSchema = {
@@ -47,34 +46,30 @@ export const cashMetricsResponseSchema = {
   }
 };
 
-export const tableMetricSchema = {
-  type: 'object',
-  properties: {
-    id: { type: 'string' },
-    name: { type: 'string' },
-    status: { type: 'string' },
-    totalOrders: { type: 'number' },
-    totalRevenue: { type: 'number' }
-  }
-};
-
 export const tableMetricsResponseSchema = {
   type: 'array',
-  items: tableMetricSchema
-};
-
-export const chartPointSchema = {
-  type: 'object',
-  properties: {
-    date: { type: 'string' },
-    sales: { type: 'number' },
-    orders: { type: 'number' }
+  items: {
+    type: 'object',
+    properties: {
+      id: { type: 'string' },
+      name: { type: 'string' },
+      status: { type: 'string' },
+      totalOrders: { type: 'number' },
+      totalRevenue: { type: 'number' }
+    }
   }
 };
 
 export const dailySalesChartResponseSchema = {
   type: 'array',
-  items: chartPointSchema
+  items: {
+    type: 'object',
+    properties: {
+      date: { type: 'string' },
+      sales: { type: 'number' },
+      orders: { type: 'number' }
+    }
+  }
 };
 
 export const dashboardOverviewResponseSchema = {

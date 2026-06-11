@@ -64,14 +64,19 @@ export async function orderRoutes(server: FastifyInstance, opts: { authenticate:
     },
     async (request, reply) => {
       const user = request.user as JwtUser;
-      const { tableId, items } = request.body as {
+      const { tableId, type, deliveryAddress, items } = request.body as {
         tableId?: string;
+        type: string;
+        deliveryAddress?: string;
         items: Array<{ productId: string; quantity: number; price: number }>;
       };
 
       const order = await OrderService.createOrder({
         businessId: user.businessId,
         tableId,
+        waiterId: user.sub,
+        type: (type || 'TABLE') as any,
+        deliveryAddress,
         items
       });
 
