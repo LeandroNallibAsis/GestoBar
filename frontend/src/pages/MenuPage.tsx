@@ -124,6 +124,26 @@ export default function MenuPage() {
     ? items.filter((p) => p.categoryId === filterCategory)
     : items;
 
+  const groupedItems = filtered.reduce((acc, item) => {
+    const catId = item.categoryId || 'uncategorized';
+    if (!acc[catId]) acc[catId] = [];
+    acc[catId].push(item);
+    return acc;
+  }, {} as Record<string, MenuItem[]>);
+
+  const categoryBlocks = Object.keys(groupedItems).map((catId) => {
+    let title = 'Sin categoría';
+    if (catId !== 'uncategorized') {
+      const cat = categories.find((c) => c.id === catId);
+      if (cat) title = cat.name;
+    }
+    return {
+      id: catId,
+      title,
+      items: groupedItems[catId]
+    };
+  });
+
   return (
     <div className="min-h-screen bg-[#2F3D46] text-white p-8">
       <div className="flex justify-between items-center mb-6">
@@ -173,39 +193,49 @@ export default function MenuPage() {
       {loading ? (
         <div className="text-[#A3B31A] animate-pulse">Cargando menú...</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="space-y-8">
           {filtered.length === 0 ? (
-            <div className="col-span-full py-10 text-center text-gray-500 italic">
+            <div className="py-10 text-center text-gray-500 italic">
               No hay productos en el menú.
             </div>
           ) : (
-            filtered.map((p) => (
-              <div key={p.id} className={`bg-[#3a4d59] border border-[#4a5a67] rounded-2xl p-5 hover:border-[#A3B31A]/50 transition shadow-lg flex flex-col ${!p.isActive ? 'opacity-50' : ''}`}>
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-xl font-bold text-white">{p.name}</h3>
-                  <span className="bg-[#2F3D46] text-[#A3B31A] font-bold px-3 py-1 rounded-lg">
-                    ${p.price.toLocaleString('es-AR')}
-                  </span>
+            categoryBlocks.map((block) => (
+              <div key={block.id} className="bg-[#2F3D46] border border-[#4a5a67] rounded-xl overflow-hidden shadow-lg">
+                <div className="bg-[#3a4d59] border-b border-[#4a5a67] px-6 py-4 flex items-center">
+                  <div className="w-1.5 h-6 bg-[#A3B31A] rounded-full mr-3"></div>
+                  <h2 className="text-xl font-bold text-white tracking-wide uppercase">{block.title}</h2>
                 </div>
-                <div className="text-sm text-gray-400 mb-3 uppercase tracking-wider">
-                  {p.category?.name || 'Sin categoría'}
-                </div>
-                <p className="text-gray-300 text-sm mb-4 flex-grow line-clamp-3">
-                  {p.description || <span className="italic text-gray-500">Sin descripción</span>}
-                </p>
-                
-                <div className="flex justify-between items-center mt-auto pt-4 border-t border-[#4a5a67]">
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.isActive ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
-                    {p.isActive ? 'Activo' : 'Inactivo'}
-                  </span>
-                  <div className="space-x-3">
-                    <button onClick={() => handleToggleActive(p)} className="text-gray-400 hover:text-white transition text-sm">
-                      {p.isActive ? 'Desactivar' : 'Activar'}
-                    </button>
-                    <button onClick={() => handleOpenModal(p)} className="text-[#A3B31A] hover:text-[#c9d929] transition text-sm font-medium">
-                      Editar
-                    </button>
-                  </div>
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {block.items.map((p) => (
+                    <div key={p.id} className={`bg-[#3a4d59] border border-[#4a5a67] rounded-2xl p-5 hover:border-[#A3B31A]/50 transition shadow-lg flex flex-col ${!p.isActive ? 'opacity-50' : ''}`}>
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-xl font-bold text-white">{p.name}</h3>
+                        <span className="bg-[#2F3D46] text-[#A3B31A] font-bold px-3 py-1 rounded-lg">
+                          ${p.price.toLocaleString('es-AR')}
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-400 mb-3 uppercase tracking-wider">
+                        {p.category?.name || 'Sin categoría'}
+                      </div>
+                      <p className="text-gray-300 text-sm mb-4 flex-grow line-clamp-3">
+                        {p.description || <span className="italic text-gray-500">Sin descripción</span>}
+                      </p>
+                      
+                      <div className="flex justify-between items-center mt-auto pt-4 border-t border-[#4a5a67]">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${p.isActive ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+                          {p.isActive ? 'Activo' : 'Inactivo'}
+                        </span>
+                        <div className="space-x-3">
+                          <button onClick={() => handleToggleActive(p)} className="text-gray-400 hover:text-white transition text-sm">
+                            {p.isActive ? 'Desactivar' : 'Activar'}
+                          </button>
+                          <button onClick={() => handleOpenModal(p)} className="text-[#A3B31A] hover:text-[#c9d929] transition text-sm font-medium">
+                            Editar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ))

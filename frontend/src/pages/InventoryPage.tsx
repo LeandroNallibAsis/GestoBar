@@ -24,6 +24,9 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [menuCategories, setMenuCategories] = useState<Category[]>([]);
+  const [transferItem, setTransferItem] = useState<InventoryItem | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [error, setError] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
@@ -36,6 +39,8 @@ export default function InventoryPage() {
     categoryId: ''
   });
 
+  const [transferFormData, setTransferFormData] = useState({ price: 0, categoryId: '' });
+
   const [catFormData, setCatFormData] = useState({ name: '' });
 
   const fetchData = async () => {
@@ -46,6 +51,7 @@ export default function InventoryPage() {
       ]);
       setItems(invData);
       setCategories(catData.filter((c) => c.type === 'INVENTORY'));
+      setMenuCategories(catData.filter((c) => c.type === 'MENU'));
     } catch (e) {
       console.error('Error fetching inventory:', e);
     } finally {
@@ -73,6 +79,12 @@ export default function InventoryPage() {
       setFormData({ name: '', cost: 0, stock: 0, unit: 'un', categoryId: '' });
     }
     setIsModalOpen(true);
+  };
+
+  const handleOpenTransferModal = (item: InventoryItem) => {
+    setTransferItem(item);
+    setTransferFormData({ price: Math.ceil(item.cost * 1.5), categoryId: '' }); // Sugerir un 50% de ganancia por defecto
+    setIsTransferModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -108,6 +120,26 @@ export default function InventoryPage() {
       fetchData();
     } catch (e: any) {
       alert(e.message || 'Error al crear categoría');
+    }
+  };
+
+  const handleTransferSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!transferItem) return;
+    try {
+      await apiFetch('/menu-items', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: transferItem.name,
+          description: `Importado desde inventario (Se vende por ${transferItem.unit})`,
+          price: transferFormData.price,
+          categoryId: transferFormData.categoryId || undefined
+        })
+      });
+      setIsTransferModalOpen(false);
+      alert('Producto agregado al menú exitosamente');
+    } catch (e: any) {
+      alert(e.message || 'Error al agregar al menú');
     }
   };
 
@@ -216,6 +248,9 @@ export default function InventoryPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right space-x-4">
+                      <button onClick={() => handleOpenTransferModal(p)} className="text-blue-400 hover:text-blue-300 transition text-sm">
+                        Al Menú
+                      </button>
                       <button onClick={() => handleOpenModal(p)} className="text-[#A3B31A] hover:text-[#c9d929] transition text-sm">
                         Editar
                       </button>
@@ -339,6 +374,50 @@ export default function InventoryPage() {
                 </button>
                 <button type="submit" className="bg-[#A3B31A] text-[#2F3D46] font-bold py-2 px-6 rounded-lg hover:bg-[#8e9e16] transition">
                   Crear Categoría
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Transfer to Menu Modal */}
+      {isTransferModalOpen && transferItem && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
+          <div className="bg-[#3a4d59] border border-blue-400/40 rounded-2xl p-8 max-w-sm w-full shadow-2xl">
+            <h2 className="text-2xl font-bold text-blue-400 mb-2">Agregar al Menú</h2>
+            <p className="text-gray-300 mb-6 text-sm">Convierte el insumo <strong>{transferItem.name}</strong> en un plato o bebida para la venta.</p>
+            <form onSubmit={handleTransferSubmit} className="space-y-4">
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Precio de Venta Sugerido *</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  className="w-full bg-[#2F3D46] border border-[#4a5a67] rounded-lg p-2.5 text-white focus:border-blue-400 outline-none"
+                  value={transferFormData.price}
+                  onChange={(e) => setTransferFormData({ ...transferFormData, price: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Categoría del Menú</label>
+                <select
+                  className="w-full bg-[#2F3D46] border border-[#4a5a67] rounded-lg p-2.5 text-white focus:border-blue-400 outline-none"
+                  value={transferFormData.categoryId}
+                  onChange={(e) => setTransferFormData({ ...transferFormData, categoryId: e.target.value })}
+                >
+                  <option value="">Sin categoría</option>
+                  {menuCategories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex justify-end space-x-4 mt-6">
+                <button type="button" onClick={() => setIsTransferModalOpen(false)} className="text-gray-400 hover:text-white transition">
+                  Cancelar
+                </button>
+                <button type="submit" className="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600 transition">
+                  Confirmar
                 </button>
               </div>
             </form>
