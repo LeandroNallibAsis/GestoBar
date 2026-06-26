@@ -1,3 +1,27 @@
+/**
+ * ============================================================
+ * order.routes.ts
+ * ============================================================
+ * Definición de rutas (endpoints) para la gestión de pedidos
+ * del sistema GestoBar.
+ *
+ * Endpoints incluidos:
+ *   GET    /orders           - Listar todos los pedidos del negocio
+ *   GET    /orders/:id       - Obtener un pedido específico por ID
+ *   POST   /orders           - Crear un nuevo pedido con ítems
+ *   PATCH  /orders/:id       - Actualizar estado o mesa de un pedido
+ *   POST   /orders/:id/close - Cerrar un pedido (marcar como pagado)
+ *   POST   /orders/:id/cancel - Cancelar un pedido
+ *   DELETE /orders/:id       - Eliminar un pedido permanentemente
+ *
+ * Todos los endpoints requieren autenticación JWT y operan
+ * dentro del alcance del negocio del usuario autenticado.
+ *
+ * Tabla(s) relacionada(s): Order, OrderItem
+ * Módulo: Pedidos (orders)
+ * ============================================================
+ */
+
 import type { FastifyInstance } from 'fastify';
 import { OrderService } from './order.service';
 import { JwtUser } from '../auth/auth.types';
@@ -9,10 +33,18 @@ import {
   updateOrderParamsSchema
 } from './order.schema';
 
+/**
+ * Registra las rutas de gestión de pedidos en la instancia de Fastify.
+ *
+ * @param server - Instancia del servidor Fastify
+ * @param opts - Opciones que incluyen el middleware de autenticación
+ */
 // Register order management routes for business-scoped orders.
 export async function orderRoutes(server: FastifyInstance, opts: { authenticate: any }) {
   const authenticate = opts.authenticate;
 
+  // ── GET /orders ───────────────────────────────────────────
+  // Lista todos los pedidos del negocio del usuario autenticado.
   server.get(
     '/orders',
     {
@@ -29,6 +61,9 @@ export async function orderRoutes(server: FastifyInstance, opts: { authenticate:
     }
   );
 
+  // ── GET /orders/:id ───────────────────────────────────────
+  // Obtiene un pedido específico por su ID.
+  // Devuelve 404 si el pedido no existe en el negocio.
   server.get(
     '/orders/:id',
     {
@@ -51,6 +86,10 @@ export async function orderRoutes(server: FastifyInstance, opts: { authenticate:
     }
   );
 
+  // ── POST /orders ──────────────────────────────────────────
+  // Crea un nuevo pedido con sus ítems.
+  // El mesero (waiterId) se obtiene del token JWT del usuario autenticado.
+  // El tipo de pedido (type) determina si se requiere tableId o deliveryAddress.
   server.post(
     '/orders',
     {
@@ -71,11 +110,12 @@ export async function orderRoutes(server: FastifyInstance, opts: { authenticate:
         items: Array<{ productId: string; quantity: number; price: number }>;
       };
 
+      // Crea el pedido asociando al negocio y mesero del usuario autenticado
       const order = await OrderService.createOrder({
         businessId: user.businessId,
         tableId,
         waiterId: user.sub,
-        type: (type || 'TABLE') as any,
+        type: (type || 'TABLE') as any, // Si no se especifica tipo, por defecto es TABLE
         deliveryAddress,
         items
       });
@@ -84,6 +124,9 @@ export async function orderRoutes(server: FastifyInstance, opts: { authenticate:
     }
   );
 
+  // ── PATCH /orders/:id ─────────────────────────────────────
+  // Actualiza parcialmente un pedido existente.
+  // Permite cambiar el estado (status) y/o la mesa asignada (tableId).
   server.patch(
     '/orders/:id',
     {
@@ -110,6 +153,9 @@ export async function orderRoutes(server: FastifyInstance, opts: { authenticate:
     }
   );
 
+  // ── POST /orders/:id/close ────────────────────────────────
+  // Cierra un pedido, marcándolo como pagado (estado PAID).
+  // Acción específica que no requiere enviar un body con el estado.
   server.post(
     '/orders/:id/close',
     {
@@ -129,6 +175,9 @@ export async function orderRoutes(server: FastifyInstance, opts: { authenticate:
     }
   );
 
+  // ── POST /orders/:id/cancel ───────────────────────────────
+  // Cancela un pedido, cambiando su estado a CANCELLED.
+  // Acción específica que no requiere enviar un body con el estado.
   server.post(
     '/orders/:id/cancel',
     {
@@ -148,6 +197,8 @@ export async function orderRoutes(server: FastifyInstance, opts: { authenticate:
     }
   );
 
+  // ── DELETE /orders/:id ────────────────────────────────────
+  // Elimina un pedido de forma permanente de la base de datos.
   server.delete(
     '/orders/:id',
     {

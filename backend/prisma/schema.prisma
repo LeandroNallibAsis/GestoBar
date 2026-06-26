@@ -1,18 +1,51 @@
+// ============================================================
+// SCHEMA.PRISMA
+// ============================================================
+// Archivo de definición del esquema de base de datos para GestoBar.
+// Define todos los modelos (tablas), enumeraciones, relaciones
+// y restricciones de la base de datos PostgreSQL.
+//
+// Este archivo es la fuente de verdad para la estructura de datos
+// del sistema. Prisma lo utiliza para generar el cliente de acceso
+// a datos (PrismaClient) y las migraciones SQL.
+//
+// Tablas definidas: Business, User, Category, InventoryItem,
+//   MenuItem, Table, Order, OrderItem, CashEntry, SalonLayout,
+//   Area, Permission, RolePermission, UserPermission
+// Módulo: Base de datos / Prisma ORM
+// ============================================================
+
+// Generador del cliente Prisma para JavaScript/TypeScript
 generator client {
   provider = "prisma-client-js"
 }
 
+// Configuración de la fuente de datos (PostgreSQL)
+// La URL de conexión se obtiene de la variable de entorno DATABASE_URL
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
+// ============================================================
+// ENUMERACIONES
+// ============================================================
+
+// Roles de usuario en el sistema.
+// - SuperAdmin: Acceso total al sistema (administrador global)
+// - BusinessOwner: Dueño del negocio, gestiona su establecimiento
+// - Employee: Empleado con permisos limitados según configuración
 enum UserRole {
   SuperAdmin
   BusinessOwner
   Employee
 }
 
+// Estados posibles de una mesa en el salón.
+// - FREE: Mesa disponible para nuevos clientes
+// - OCCUPIED: Mesa actualmente en uso con clientes
+// - RESERVED: Mesa reservada para un horario futuro
+// - PENDING_PAYMENT: Mesa con cuenta pendiente de cobro
 enum TableStatus {
   FREE
   OCCUPIED
@@ -21,6 +54,9 @@ enum TableStatus {
 }
 
 // Order status tracks the lifecycle of a customer order.
+// Ciclo de vida de un pedido:
+// OPEN -> PREPARING -> READY -> DELIVERED -> PAID
+// En cualquier punto puede pasar a CANCELLED
 enum OrderStatus {
   OPEN
   PREPARING
@@ -31,12 +67,22 @@ enum OrderStatus {
 }
 
 // Order type separates table, takeaway and delivery orders.
+// Tipos de pedido según el canal de venta:
+// - TABLE: Pedido para consumo en mesa
+// - TAKEAWAY: Pedido para llevar
+// - DELIVERY: Pedido para entrega a domicilio
 enum OrderType {
   TABLE
   TAKEAWAY
   DELIVERY
 }
 
+// Tipos de movimientos en la caja registradora.
+// - OPENING: Apertura de caja con monto inicial
+// - CLOSING: Cierre de caja al final del turno
+// - SALE: Ingreso por venta (vinculado a un pedido)
+// - EXPENSE: Gasto o egreso de dinero
+// - ADJUSTMENT: Ajuste manual del saldo de caja
 enum CashEntryType {
   OPENING
   CLOSING
@@ -45,11 +91,20 @@ enum CashEntryType {
   ADJUSTMENT
 }
 
+// ============================================================
+// MODELOS (TABLAS DE LA BASE DE DATOS)
+// ============================================================
+
+// Modelo principal de negocio/establecimiento (Tenant).
+// Implementa multi-tenancy: cada negocio tiene sus propios
+// usuarios, menú, inventario, mesas, pedidos y caja.
+// Todas las demás entidades están vinculadas a un Business.
 model Business {
   id              String           @id @default(uuid())
   name            String
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+  // Relaciones con todas las entidades del negocio
   users           User[]
   categories      Category[]
   menuItems       MenuItem[]
@@ -62,166 +117,208 @@ model Business {
   userPermissions UserPermission[]
 }
 
+// Usuario del sistema. Puede ser administrador, dueño o empleado.
+// Cada usuario pertenece a un único negocio (multi-tenancy).
+// El campo email es único a nivel global para autenticación.
 model User {
   id              String           @id @default(uuid())
   email           String           @unique
-  password        String
+  password        String           // Contraseña hasheada con bcrypt
   name            String
   role            UserRole         @default(Employee)
-  isActive        Boolean          @default(true)
+  isActive        Boolean          @default(true) // Permite desactivar usuarios sin eliminarlos
   business        Business         @relation(fields: [businessId], references: [id])
   businessId      String
-  orders          Order[]          @relation("WaiterOrders")
-  cashEntries     CashEntry[]
-  userPermissions UserPermission[]
+  orders          Order[]          @relation("WaiterOrders") // Pedidos atendidos como mesero
+  cashEntries     CashEntry[]      // Movimientos de caja realizados por este usuario
+  userPermissions UserPermission[] // Permisos individuales asignados
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 }
 
+// Categoría para agrupar productos del menú o del inventario.
+// El campo 'type' distingue si es una categoría de MENÚ o de INVENTARIO.
 model Category {
   id         String          @id @default(uuid())
   name       String
   type       String          @default("MENU") // "MENU" or "INVENTORY"
   business   Business        @relation(fields: [businessId], references: [id])
   businessId String
-  menuItems  MenuItem[]
-  inventory  InventoryItem[]
-  isActive   Boolean         @default(true)
+  menuItems  MenuItem[]      // Productos del menú en esta categoría
+  inventory  InventoryItem[] // Insumos de inventario en esta categoría
+  isActive   Boolean         @default(true) // Permite desactivar categorías sin eliminarlas
   createdAt  DateTime        @default(now())
   updatedAt  DateTime        @updatedAt
 }
 
+// Insumo/producto del inventario interno del negocio.
+// Representa materias primas o productos que se controlan por stock
+// (ej: botellas, ingredientes, insumos de limpieza).
 model InventoryItem {
   id         String    @id @default(uuid())
   name       String
   unit       String    @default("un") // unit of measurement (kg, l, un)
-  cost       Float     @default(0)
-  stock      Float     @default(0)
+  cost       Float     @default(0)    // Costo unitario de compra
+  stock      Float     @default(0)    // Cantidad actual en existencia
   isActive   Boolean   @default(true)
   category   Category? @relation(fields: [categoryId], references: [id])
-  categoryId String?
+  categoryId String?   // Categoría opcional (puede no tener categoría)
   business   Business  @relation(fields: [businessId], references: [id])
   businessId String
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
 }
 
+// Producto del menú que se ofrece a los clientes.
+// Tiene precio de venta y puede estar asociado a pedidos (OrderItem).
+// A diferencia de InventoryItem, estos son los productos vendibles.
 model MenuItem {
   id          String      @id @default(uuid())
   name        String
-  description String?
-  price       Float
+  description String?     // Descripción opcional del plato/producto
+  price       Float       // Precio de venta al público
   isActive    Boolean     @default(true)
   category    Category?   @relation(fields: [categoryId], references: [id])
   categoryId  String?
   business    Business    @relation(fields: [businessId], references: [id])
   businessId  String
-  orderItems  OrderItem[]
+  orderItems  OrderItem[] // Ítems de pedido que referencian este producto
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 }
 
+// Mesa física del establecimiento.
+// Puede vincularse con otra mesa (linkedTable) para unir mesas contiguas.
+// Su estado cambia según el flujo de atención al cliente.
 model Table {
   id            String      @id @default(uuid())
-  name          String
-  capacity      Int         @default(4)
+  name          String      // Nombre o número de la mesa (ej: "Mesa 1")
+  capacity      Int         @default(4) // Capacidad de personas
   status        TableStatus @default(FREE)
-  linkedTableId String?
+  linkedTableId String?     // Referencia a otra mesa vinculada (mesas unidas)
   linkedTable   Table?      @relation("LinkedTables", fields: [linkedTableId], references: [id])
-  linkedBy      Table[]     @relation("LinkedTables")
+  linkedBy      Table[]     @relation("LinkedTables") // Mesas que están vinculadas a esta
   business      Business    @relation(fields: [businessId], references: [id])
   businessId    String
-  orders        Order[]
+  orders        Order[]     // Pedidos asociados a esta mesa
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }
 
+// Pedido de un cliente. Puede ser de mesa, para llevar o delivery.
+// Contiene una lista de ítems (OrderItem) y un total calculado.
+// Está asociado a un mesero (waiter) que lo atiende.
 model Order {
   id              String      @id @default(uuid())
   type            OrderType   @default(TABLE)
   status          OrderStatus @default(OPEN)
-  total           Float       @default(0)
+  total           Float       @default(0) // Total acumulado del pedido
   // tableId is optional: null for TAKEAWAY and DELIVERY orders.
   table           Table?      @relation(fields: [tableId], references: [id])
   tableId         String?
-  deliveryAddress String?
+  deliveryAddress String?     // Dirección de entrega (solo para DELIVERY)
   waiter          User        @relation("WaiterOrders", fields: [waiterId], references: [id])
-  waiterId        String
+  waiterId        String      // Mesero/empleado que atiende el pedido
   business        Business    @relation(fields: [businessId], references: [id])
   businessId      String
-  items           OrderItem[]
+  items           OrderItem[] // Lista de productos incluidos en el pedido
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 }
 
+// Línea de detalle de un pedido.
+// Vincula un MenuItem con un Order, almacenando cantidad y precio
+// al momento de la venta (el precio se congela para historial).
 model OrderItem {
   id        String   @id @default(uuid())
   order     Order    @relation(fields: [orderId], references: [id])
   orderId   String
   product   MenuItem @relation(fields: [productId], references: [id])
   productId String
-  quantity  Int
-  price     Float
-  notes     String?
+  quantity  Int      // Cantidad de unidades del producto
+  price     Float    // Precio unitario al momento de la venta
+  notes     String?  // Notas especiales (ej: "sin cebolla", "bien cocido")
 }
 
+// Movimiento de caja registradora.
+// Registra todas las operaciones financieras: aperturas, cierres,
+// ventas, gastos y ajustes. Cada entrada está vinculada a un usuario
+// y opcionalmente a un pedido (para ventas).
 model CashEntry {
   id         String        @id @default(uuid())
-  amount     Float
-  type       CashEntryType
-  note       String?
+  amount     Float         // Monto del movimiento (positivo o negativo según tipo)
+  type       CashEntryType // Tipo de movimiento
+  note       String?       // Nota descriptiva opcional
   business   Business      @relation(fields: [businessId], references: [id])
   businessId String
   user       User          @relation(fields: [userId], references: [id])
-  userId     String
-  orderId    String?
+  userId     String        // Usuario que realizó el movimiento
+  orderId    String?       // Pedido asociado (solo para movimientos tipo SALE)
   createdAt  DateTime      @default(now())
 }
 
+// Distribución del salón del establecimiento.
+// Define una grilla de filas x columnas donde se posicionan las áreas.
+// Cada negocio tiene como máximo un layout de salón (relación 1:1).
 model SalonLayout {
   id         String   @id @default(uuid())
   business   Business @relation(fields: [businessId], references: [id])
-  businessId String   @unique
-  rows       Int
-  columns    Int
-  areas      Area[]
+  businessId String   @unique // Restricción: un solo layout por negocio
+  rows       Int      // Número de filas de la grilla
+  columns    Int      // Número de columnas de la grilla
+  areas      Area[]   // Áreas definidas dentro del salón
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
 
+// Área dentro del salón (ej: "Terraza", "Barra", "Salón VIP").
+// Define una zona visual con color y celdas ocupadas en la grilla.
+// Se elimina en cascada al eliminar el SalonLayout padre.
 model Area {
   id            String      @id @default(uuid())
-  name          String
-  color         String
-  cells         Json
+  name          String      // Nombre del área (ej: "Terraza")
+  color         String      // Color para representación visual (hex o nombre)
+  cells         Json        // Celdas de la grilla que ocupa el área (array de coordenadas)
   salonLayout   SalonLayout @relation(fields: [salonLayoutId], references: [id], onDelete: Cascade)
   salonLayoutId String
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }
 
+// ============================================================
+// SISTEMA DE PERMISOS
+// ============================================================
+
 // Permission keys define specific capabilities (e.g. 'orders:create').
+// Permiso individual del sistema. Cada permiso tiene una clave única
+// (ej: 'orders:create', 'cash:manage') que se verifica en el middleware.
 model Permission {
   id              String           @id @default(uuid())
-  key             String           @unique
-  description     String?
-  roles           RolePermission[]
-  userPermissions UserPermission[]
+  key             String           @unique // Clave única del permiso (ej: 'orders:view')
+  description     String?          // Descripción legible del permiso
+  roles           RolePermission[] // Roles que tienen este permiso
+  userPermissions UserPermission[] // Usuarios individuales con este permiso
 }
 
 // RolePermission assigns permissions globally to a role within a business.
+// Asigna permisos a nivel de rol dentro de un negocio específico.
+// Permite que todos los usuarios con un rol determinado hereden permisos.
+// La restricción @@unique evita duplicados de rol+permiso+negocio.
 model RolePermission {
   id           String     @id @default(uuid())
-  role         UserRole
+  role         UserRole   // Rol al que se asigna el permiso
   permission   Permission @relation(fields: [permissionId], references: [id])
   permissionId String
   business     Business   @relation(fields: [businessId], references: [id])
   businessId   String
 
-  @@unique([role, permissionId, businessId])
+  @@unique([role, permissionId, businessId]) // Un permiso por rol por negocio
 }
 
 // UserPermission allows BusinessOwner to grant specific permissions to individual employees.
+// Permite asignar permisos específicos a usuarios individuales,
+// independientemente de su rol. Útil para dar acceso especial a
+// empleados puntuales sin cambiar los permisos del rol completo.
 model UserPermission {
   id           String     @id @default(uuid())
   user         User       @relation(fields: [userId], references: [id])
@@ -231,5 +328,5 @@ model UserPermission {
   business     Business   @relation(fields: [businessId], references: [id])
   businessId   String
 
-  @@unique([userId, permissionId])
+  @@unique([userId, permissionId]) // Un permiso por usuario (sin duplicados)
 }

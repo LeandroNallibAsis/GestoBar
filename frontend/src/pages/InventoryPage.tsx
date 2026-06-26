@@ -1,6 +1,43 @@
+/**
+ * ============================================================
+ * InventoryPage.tsx
+ * ============================================================
+ * Página de gestión de inventario del bar/restaurante.
+ * Permite administrar los insumos y materias primas que se
+ * utilizan en la operación del local.
+ *
+ * Funcionalidades:
+ * - Listar todos los insumos del inventario en una tabla
+ * - Filtrar insumos por categoría de inventario
+ * - Crear nuevos insumos (nombre, costo, stock, unidad, categoría)
+ * - Editar insumos existentes
+ * - Activar/desactivar insumos
+ * - Transferir un insumo al menú como producto de venta directa
+ *   (crea un MenuItem a partir de un InventoryItem)
+ * - Crear nuevas categorías de tipo INVENTORY
+ *
+ * Llamadas a la API:
+ * - GET /inventory-items → Obtener todos los insumos
+ * - POST /inventory-items → Crear un nuevo insumo
+ * - PATCH /inventory-items/:id → Actualizar un insumo existente
+ * - GET /categories → Obtener todas las categorías (se filtran INVENTORY y MENU)
+ * - POST /categories → Crear nueva categoría de tipo INVENTORY
+ * - POST /menu-items → Crear un producto en el menú (al transferir desde inventario)
+ *
+ * Tabla(s) relacionada(s): InventoryItem, Category, MenuItem
+ * Módulo: Inventario
+ * ============================================================
+ */
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../services/api';
 
+/**
+ * Interfaz que representa un insumo del inventario.
+ * - cost: costo de compra por unidad
+ * - stock: cantidad actual disponible
+ * - unit: unidad de medida (un, kg, l, gr, ml)
+ * - isActive: indica si el insumo está activo en el sistema
+ */
 interface InventoryItem {
   id: string;
   name: string;
@@ -12,25 +49,58 @@ interface InventoryItem {
   category?: { id: string; name: string };
 }
 
+/**
+ * Interfaz que representa una categoría.
+ * - type: 'INVENTORY' para insumos, 'MENU' para productos de venta
+ */
 interface Category {
   id: string;
   name: string;
   type: string;
 }
 
+/**
+ * Componente principal de la página de Inventario.
+ * Renderiza una tabla con todos los insumos, filtros por categoría,
+ * y modales para creación, edición y transferencia al menú.
+ *
+ * @returns JSX de la página completa de inventario
+ */
 export default function InventoryPage() {
+  /** Lista de todos los insumos del inventario */
   const [items, setItems] = useState<InventoryItem[]>([]);
+
+  /** Lista de categorías de tipo INVENTORY */
   const [categories, setCategories] = useState<Category[]>([]);
+
+  /** Indicador de carga durante la obtención inicial de datos */
   const [loading, setLoading] = useState(true);
+
+  /** Controla la visibilidad del modal de creación/edición de insumos */
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  /** Controla la visibilidad del modal de creación de categorías */
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+
+  /** Controla la visibilidad del modal de transferencia al menú */
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+
+  /** Lista de categorías de tipo MENU (usadas en el modal de transferencia) */
   const [menuCategories, setMenuCategories] = useState<Category[]>([]);
+
+  /** Insumo seleccionado para transferir al menú */
   const [transferItem, setTransferItem] = useState<InventoryItem | null>(null);
+
+  /** Insumo que se está editando actualmente (null si es creación nueva) */
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+
+  /** Mensaje de error para mostrar en el formulario */
   const [error, setError] = useState('');
+
+  /** ID de la categoría seleccionada para filtrar, cadena vacía = "Todos" */
   const [filterCategory, setFilterCategory] = useState('');
 
+  /** Estado del formulario de creación/edición de insumos */
   const [formData, setFormData] = useState({
     name: '',
     cost: 0,
@@ -39,17 +109,26 @@ export default function InventoryPage() {
     categoryId: ''
   });
 
+  /** Estado del formulario de transferencia al menú (precio de venta y categoría del menú) */
   const [transferFormData, setTransferFormData] = useState({ price: 0, categoryId: '' });
 
+  /** Estado del formulario de creación de categorías */
   const [catFormData, setCatFormData] = useState({ name: '' });
 
+  /**
+   * Obtiene los insumos del inventario y todas las categorías desde la API.
+   * Separa las categorías en dos listas: INVENTORY (para filtros) y MENU
+   * (para el modal de transferencia).
+   */
   const fetchData = async () => {
     try {
+      // Ejecutar ambas peticiones en paralelo
       const [invData, catData] = await Promise.all([
         apiFetch<InventoryItem[]>('/inventory-items'),
         apiFetch<Category[]>('/categories')
       ]);
       setItems(invData);
+      // Separar categorías por tipo
       setCategories(catData.filter((c) => c.type === 'INVENTORY'));
       setMenuCategories(catData.filter((c) => c.type === 'MENU'));
     } catch (e) {
@@ -59,10 +138,20 @@ export default function InventoryPage() {
     }
   };
 
+  /**
+   * useEffect: Se ejecuta una sola vez al montar el componente.
+   * Carga los insumos y categorías disponibles.
+   */
   useEffect(() => {
     fetchData();
   }, []);
 
+  /**
+   * Abre el modal de formulario para crear o editar un insumo.
+   * Si recibe un item, precarga los datos para edición.
+   *
+   * @param item - Insumo a editar (opcional; si no se pasa, se abre para creación)
+   */
   const handleOpenModal = (item?: InventoryItem) => {
     setError('');
     if (item) {
@@ -81,12 +170,25 @@ export default function InventoryPage() {
     setIsModalOpen(true);
   };
 
+  /**
+   * Abre el modal de transferencia al menú para un insumo específico.
+   * Sugiere un precio de venta con un margen del 50% sobre el costo.
+   *
+   * @param item - Insumo que se quiere agregar al menú
+   */
   const handleOpenTransferModal = (item: InventoryItem) => {
     setTransferItem(item);
     setTransferFormData({ price: Math.ceil(item.cost * 1.5), categoryId: '' }); // Sugerir un 50% de ganancia por defecto
     setIsTransferModalOpen(true);
   };
 
+  /**
+   * Manejador del envío del formulario de insumo.
+   * Determina si es creación (POST) o actualización (PATCH).
+   * Después de guardar, cierra el modal y recarga los datos.
+   *
+   * @param e - Evento del formulario
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -108,6 +210,12 @@ export default function InventoryPage() {
     }
   };
 
+  /**
+   * Manejador del envío del formulario de nueva categoría de inventario.
+   * Crea una categoría de tipo 'INVENTORY' en la API.
+   *
+   * @param e - Evento del formulario
+   */
   const handleCategorySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -123,6 +231,13 @@ export default function InventoryPage() {
     }
   };
 
+  /**
+   * Manejador del envío del formulario de transferencia al menú.
+   * Crea un nuevo MenuItem basado en los datos del insumo seleccionado,
+   * con el precio de venta y categoría de menú indicados por el usuario.
+   *
+   * @param e - Evento del formulario
+   */
   const handleTransferSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!transferItem) return;
@@ -143,6 +258,11 @@ export default function InventoryPage() {
     }
   };
 
+  /**
+   * Alterna el estado activo/inactivo de un insumo.
+   *
+   * @param item - Insumo cuyo estado se quiere cambiar
+   */
   const handleToggleActive = async (item: InventoryItem) => {
     try {
       await apiFetch(`/inventory-items/${item.id}`, {
@@ -155,24 +275,28 @@ export default function InventoryPage() {
     }
   };
 
+  // Filtrar insumos por la categoría seleccionada
   const filtered = filterCategory
     ? items.filter((p) => p.categoryId === filterCategory)
     : items;
 
   return (
     <div className="min-h-screen bg-[#2F3D46] text-white p-8">
+      {/* ===================== Encabezado y botones de acción ===================== */}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-4xl font-bold text-[#A3B31A] mb-1">Inventario</h1>
           <p className="text-gray-400">Gestiona el stock de insumos y materias primas</p>
         </div>
         <div className="space-x-3">
+          {/* Botón para crear nueva categoría de inventario */}
           <button
             onClick={() => setIsCategoryModalOpen(true)}
             className="bg-[#3a4d59] hover:bg-[#4a5a67] text-white py-2 px-4 rounded-xl transition border border-[#4a5a67]"
           >
             + Categoría
           </button>
+          {/* Botón para crear nuevo insumo */}
           <button
             onClick={() => handleOpenModal()}
             className="bg-[#A3B31A] hover:bg-[#8e9e16] text-[#2F3D46] font-bold py-2 px-6 rounded-xl transition"
@@ -182,6 +306,7 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* ===================== Filtro por categorías ===================== */}
       {/* Category filter */}
       <div className="flex gap-2 mb-6 flex-wrap">
         <button
@@ -205,6 +330,7 @@ export default function InventoryPage() {
         ))}
       </div>
 
+      {/* ===================== Tabla de insumos ===================== */}
       {loading ? (
         <div className="text-[#A3B31A] animate-pulse">Cargando inventario...</div>
       ) : (
@@ -237,6 +363,7 @@ export default function InventoryPage() {
                     <td className="px-6 py-4 text-gray-300">
                       ${p.cost.toLocaleString('es-AR')}
                     </td>
+                    {/* El stock se muestra en rojo si es menor a 5 unidades (stock bajo) */}
                     <td className="px-6 py-4">
                       <span className={`font-medium ${p.stock < 5 ? 'text-red-400' : 'text-[#39FF8B]'}`}>
                         {p.stock} {p.unit}
@@ -247,6 +374,7 @@ export default function InventoryPage() {
                         {p.isActive ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
+                    {/* Columna de acciones: transferir al menú, editar, activar/desactivar */}
                     <td className="px-6 py-4 text-right space-x-4">
                       <button onClick={() => handleOpenTransferModal(p)} className="text-blue-400 hover:text-blue-300 transition text-sm">
                         Al Menú
@@ -266,6 +394,7 @@ export default function InventoryPage() {
         </div>
       )}
 
+      {/* ===================== Modal de creación/edición de insumo ===================== */}
       {/* Item Modal Form */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
@@ -274,6 +403,7 @@ export default function InventoryPage() {
               {editingItem ? 'Editar Insumo' : 'Nuevo Insumo'}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Campo: Nombre del insumo */}
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Nombre *</label>
                 <input
@@ -285,6 +415,7 @@ export default function InventoryPage() {
                   placeholder="Ej: Carne de Lomo"
                 />
               </div>
+              {/* Campo: Selector de categoría de inventario */}
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Categoría</label>
                 <select
@@ -298,7 +429,9 @@ export default function InventoryPage() {
                   ))}
                 </select>
               </div>
+              {/* Fila de 3 columnas: Unidad, Costo y Stock */}
               <div className="grid grid-cols-3 gap-4">
+                {/* Selector de unidad de medida */}
                 <div className="col-span-1">
                   <label className="block text-gray-400 text-sm mb-1">Unidad</label>
                   <select
@@ -313,6 +446,7 @@ export default function InventoryPage() {
                     <option value="ml">Mililitros (ml)</option>
                   </select>
                 </div>
+                {/* Campo: Costo de compra por unidad */}
                 <div className="col-span-1">
                   <label className="block text-gray-400 text-sm mb-1">Costo *</label>
                   <input
@@ -325,6 +459,7 @@ export default function InventoryPage() {
                     onChange={(e) => setFormData({ ...formData, cost: parseFloat(e.target.value) })}
                   />
                 </div>
+                {/* Campo: Cantidad de stock actual */}
                 <div className="col-span-1">
                   <label className="block text-gray-400 text-sm mb-1">Stock Actual</label>
                   <input
@@ -351,6 +486,7 @@ export default function InventoryPage() {
         </div>
       )}
 
+      {/* ===================== Modal de creación de categoría ===================== */}
       {/* Category Modal */}
       {isCategoryModalOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
@@ -380,6 +516,9 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
+
+      {/* ===================== Modal de transferencia al menú ===================== */}
+      {/* Permite convertir un insumo del inventario en un producto del menú de venta */}
       {/* Transfer to Menu Modal */}
       {isTransferModalOpen && transferItem && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
@@ -387,6 +526,7 @@ export default function InventoryPage() {
             <h2 className="text-2xl font-bold text-blue-400 mb-2">Agregar al Menú</h2>
             <p className="text-gray-300 mb-6 text-sm">Convierte el insumo <strong>{transferItem.name}</strong> en un plato o bebida para la venta.</p>
             <form onSubmit={handleTransferSubmit} className="space-y-4">
+              {/* Campo: Precio de venta sugerido (con margen del 50% sobre el costo) */}
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Precio de Venta Sugerido *</label>
                 <input
@@ -399,6 +539,7 @@ export default function InventoryPage() {
                   onChange={(e) => setTransferFormData({ ...transferFormData, price: parseFloat(e.target.value) || 0 })}
                 />
               </div>
+              {/* Selector de categoría del menú para el nuevo producto */}
               <div>
                 <label className="block text-gray-400 text-sm mb-1">Categoría del Menú</label>
                 <select

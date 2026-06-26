@@ -1,3 +1,27 @@
+/**
+ * ============================================================
+ * dashboard.routes.ts
+ * ============================================================
+ * Definición de rutas (endpoints) del panel de control (dashboard)
+ * del sistema GestoBar.
+ *
+ * Endpoints incluidos:
+ *   GET /dashboard              - Resumen completo con todas las métricas
+ *   GET /dashboard/sales        - Métricas de ventas por rango de fechas
+ *   GET /dashboard/top-products - Productos más vendidos
+ *   GET /dashboard/cash         - Métricas de movimientos de caja
+ *   GET /dashboard/tables       - Métricas de rendimiento de mesas
+ *   GET /dashboard/daily-sales  - Datos para gráfico de ventas diarias
+ *
+ * Todos los endpoints son de solo lectura (GET) y requieren
+ * autenticación JWT. Los datos se filtran automáticamente
+ * por el negocio del usuario autenticado.
+ *
+ * Tabla(s) relacionada(s): Order, OrderItem, CashEntry, Table
+ * Módulo: Dashboard
+ * ============================================================
+ */
+
 import type { FastifyInstance } from 'fastify';
 import { DashboardService } from './dashboard.service';
 import { JwtUser } from '../auth/auth.types';
@@ -11,9 +35,19 @@ import {
   dashboardOverviewResponseSchema
 } from './dashboard.schema';
 
+/**
+ * Registra las rutas del panel de control en la instancia de Fastify.
+ *
+ * @param server - Instancia del servidor Fastify
+ * @param opts - Opciones que incluyen el middleware de autenticación
+ */
 export async function dashboardRoutes(server: FastifyInstance, opts: { authenticate: any }) {
   const authenticate = opts.authenticate;
 
+  // ── GET /dashboard ────────────────────────────────────────
+  // Resumen principal del dashboard con todas las métricas consolidadas.
+  // Incluye ventas, top productos, caja, mesas y gráfico diario.
+  // Las métricas cubren los últimos 30 días por defecto.
   // Main dashboard overview with all metrics
   server.get(
     '/dashboard',
@@ -31,6 +65,9 @@ export async function dashboardRoutes(server: FastifyInstance, opts: { authentic
     }
   );
 
+  // ── GET /dashboard/sales ──────────────────────────────────
+  // Métricas de ventas para un rango de fechas personalizable.
+  // Acepta startDate y endDate como query parameters opcionales.
   // Sales metrics for a date range
   server.get(
     '/dashboard/sales',
@@ -47,6 +84,7 @@ export async function dashboardRoutes(server: FastifyInstance, opts: { authentic
       const user = request.user as JwtUser;
       const { startDate, endDate } = request.query as { startDate?: string; endDate?: string };
 
+      // Convierte las fechas de string a Date si se proporcionan
       return DashboardService.getSalesMetrics(
         user.businessId,
         startDate ? new Date(startDate) : undefined,
@@ -55,6 +93,9 @@ export async function dashboardRoutes(server: FastifyInstance, opts: { authentic
     }
   );
 
+  // ── GET /dashboard/top-products ───────────────────────────
+  // Productos más vendidos, con filtro opcional de fechas y límite.
+  // El parámetro "limit" controla cuántos productos devolver.
   // Top selling products
   server.get(
     '/dashboard/top-products',
@@ -91,6 +132,9 @@ export async function dashboardRoutes(server: FastifyInstance, opts: { authentic
     }
   );
 
+  // ── GET /dashboard/cash ───────────────────────────────────
+  // Métricas de movimientos de caja (ingresos, egresos, etc.)
+  // con filtro opcional de fechas.
   // Cash register metrics
   server.get(
     '/dashboard/cash',
@@ -115,6 +159,9 @@ export async function dashboardRoutes(server: FastifyInstance, opts: { authentic
     }
   );
 
+  // ── GET /dashboard/tables ─────────────────────────────────
+  // Métricas de rendimiento y estado actual de las mesas.
+  // No requiere filtros de fecha ya que muestra el estado actual.
   // Table performance metrics
   server.get(
     '/dashboard/tables',
@@ -132,6 +179,9 @@ export async function dashboardRoutes(server: FastifyInstance, opts: { authentic
     }
   );
 
+  // ── GET /dashboard/daily-sales ────────────────────────────
+  // Datos para el gráfico de ventas diarias.
+  // El parámetro "days" controla cuántos días incluir (opcional).
   // Daily sales chart data
   server.get(
     '/dashboard/daily-sales',

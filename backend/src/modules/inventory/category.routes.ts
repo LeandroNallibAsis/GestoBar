@@ -1,3 +1,24 @@
+/**
+ * ============================================================
+ * category.routes.ts
+ * ============================================================
+ * Definición de rutas (endpoints) para la gestión de categorías
+ * de inventario del sistema GestoBar.
+ *
+ * Endpoints incluidos:
+ *   GET    /categories      - Listar todas las categorías del negocio
+ *   POST   /categories      - Crear una nueva categoría
+ *   PATCH  /categories/:id  - Actualizar una categoría existente
+ *   DELETE /categories/:id  - Eliminar una categoría
+ *
+ * Todos los endpoints requieren autenticación JWT y operan
+ * dentro del alcance del negocio del usuario autenticado.
+ *
+ * Tabla(s) relacionada(s): Category
+ * Módulo: Inventario (inventory)
+ * ============================================================
+ */
+
 import type { FastifyInstance } from 'fastify';
 import { CategoryService } from './category.service';
 import { JwtUser } from '../auth/auth.types';
@@ -9,9 +30,17 @@ import {
   categoryParamsSchema
 } from './category.schema';
 
+/**
+ * Registra las rutas de gestión de categorías en la instancia de Fastify.
+ *
+ * @param server - Instancia del servidor Fastify
+ * @param opts - Opciones que incluyen el middleware de autenticación
+ */
 export async function categoryRoutes(server: FastifyInstance, opts: { authenticate: any }) {
   const authenticate = opts.authenticate;
 
+  // ── GET /categories ───────────────────────────────────────
+  // Lista todas las categorías del negocio del usuario autenticado.
   server.get(
     '/categories',
     {
@@ -26,6 +55,9 @@ export async function categoryRoutes(server: FastifyInstance, opts: { authentica
     }
   );
 
+  // ── POST /categories ──────────────────────────────────────
+  // Crea una nueva categoría en el negocio.
+  // Requiere el nombre de la categoría en el body.
   server.post(
     '/categories',
     {
@@ -43,6 +75,9 @@ export async function categoryRoutes(server: FastifyInstance, opts: { authentica
     }
   );
 
+  // ── PATCH /categories/:id ─────────────────────────────────
+  // Actualiza parcialmente una categoría existente.
+  // Permite modificar el nombre y/o el estado activo.
   server.patch(
     '/categories/:id',
     {
@@ -61,6 +96,8 @@ export async function categoryRoutes(server: FastifyInstance, opts: { authentica
     }
   );
 
+  // ── DELETE /categories/:id ────────────────────────────────
+  // Elimina una categoría de forma permanente.
   server.delete(
     '/categories/:id',
     {

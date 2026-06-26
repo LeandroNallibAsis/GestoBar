@@ -1,3 +1,27 @@
+/**
+ * ============================================================
+ * inventory-item.routes.ts
+ * ============================================================
+ * Definición de rutas (endpoints) para la gestión de ítems
+ * de inventario (insumos/materias primas) del sistema GestoBar.
+ *
+ * Endpoints incluidos:
+ *   GET    /inventory-items      - Listar todos los ítems de inventario
+ *   GET    /inventory-items/:id  - Obtener un ítem específico por ID
+ *   POST   /inventory-items      - Crear un nuevo ítem de inventario
+ *   PATCH  /inventory-items/:id  - Actualizar un ítem existente
+ *   DELETE /inventory-items/:id  - Desactivar un ítem (soft delete)
+ *
+ * Nota: La eliminación es lógica (soft delete), cambiando isActive a false
+ * en lugar de eliminar físicamente el registro.
+ *
+ * Todos los endpoints requieren autenticación JWT.
+ *
+ * Tabla(s) relacionada(s): InventoryItem, Category
+ * Módulo: Inventario (inventory)
+ * ============================================================
+ */
+
 import type { FastifyInstance } from 'fastify';
 import { InventoryItemService } from './inventory-item.service';
 import { JwtUser } from '../auth/auth.types';
@@ -9,9 +33,17 @@ import {
   InventoryItemParamsSchema
 } from './inventory-item.schema';
 
+/**
+ * Registra las rutas de gestión de ítems de inventario en la instancia de Fastify.
+ *
+ * @param server - Instancia del servidor Fastify
+ * @param opts - Opciones que incluyen el middleware de autenticación
+ */
 export async function InventoryItemRoutes(server: FastifyInstance, opts: { authenticate: any }) {
   const authenticate = opts.authenticate;
 
+  // ── GET /inventory-items ──────────────────────────────────
+  // Lista todos los ítems de inventario del negocio.
   server.get(
     '/inventory-items',
     {
@@ -28,6 +60,9 @@ export async function InventoryItemRoutes(server: FastifyInstance, opts: { authe
     }
   );
 
+  // ── GET /inventory-items/:id ──────────────────────────────
+  // Obtiene un ítem de inventario específico por su ID.
+  // Devuelve 404 si el ítem no existe en el negocio.
   server.get(
     '/inventory-items/:id',
     {
@@ -50,6 +85,9 @@ export async function InventoryItemRoutes(server: FastifyInstance, opts: { authe
     }
   );
 
+  // ── POST /inventory-items ─────────────────────────────────
+  // Crea un nuevo ítem de inventario en el negocio.
+  // Requiere nombre y costo; unidad, stock y categoría son opcionales.
   server.post(
     '/inventory-items',
     {
@@ -71,6 +109,7 @@ export async function InventoryItemRoutes(server: FastifyInstance, opts: { authe
         categoryId?: string;
       };
 
+      // Crea el ítem asociado al negocio del usuario autenticado
       const InventoryItem = await InventoryItemService.createInventoryItem({
         name,
         unit,
@@ -84,6 +123,9 @@ export async function InventoryItemRoutes(server: FastifyInstance, opts: { authe
     }
   );
 
+  // ── PATCH /inventory-items/:id ────────────────────────────
+  // Actualiza parcialmente un ítem de inventario existente.
+  // Permite modificar nombre, unidad, costo, stock, categoría y estado.
   server.patch(
     '/inventory-items/:id',
     {
@@ -121,6 +163,10 @@ export async function InventoryItemRoutes(server: FastifyInstance, opts: { authe
     }
   );
 
+  // ── DELETE /inventory-items/:id ───────────────────────────
+  // Desactiva un ítem de inventario (eliminación lógica / soft delete).
+  // En lugar de eliminar el registro, cambia isActive a false para
+  // mantener la integridad referencial con pedidos existentes.
   server.delete(
     '/inventory-items/:id',
     {
@@ -132,9 +178,9 @@ export async function InventoryItemRoutes(server: FastifyInstance, opts: { authe
     async (request, reply) => {
       const user = request.user as JwtUser;
       const { id } = request.params as { id: string };
+      // Soft delete: desactiva el ítem en lugar de eliminarlo físicamente
       await InventoryItemService.updateInventoryItem(id, user.businessId, { isActive: false });
       return reply.send({ success: true });
     }
   );
 }
-

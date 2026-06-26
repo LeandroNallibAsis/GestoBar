@@ -1,11 +1,43 @@
+/**
+ * ============================================================
+ * Dashboard.tsx
+ * ============================================================
+ * Página principal del sistema que muestra un resumen ejecutivo
+ * de las operaciones del bar/restaurante en los últimos 30 días.
+ *
+ * Presenta:
+ * - Tarjetas KPI: ventas totales, ticket promedio, gastos e ingreso neto
+ * - Gráfico de barras con las ventas diarias de los últimos 7 días
+ * - Resumen de métricas de caja (apertura, ventas, gastos, ajustes, cierre)
+ * - Tabla de los productos más vendidos (top products)
+ * - Grilla con el desempeño de cada mesa (pedidos e ingresos)
+ *
+ * Llamadas a la API:
+ * - GET /dashboard → Obtiene todas las métricas consolidadas
+ *
+ * Tabla(s) relacionada(s): Order, CashEntry, MenuItem, Table (indirectamente, a través del endpoint dashboard)
+ * Módulo: Dashboard / Reportes
+ * ============================================================
+ */
 import { useState, useEffect } from 'react';
 
+/**
+ * Interfaz que define las métricas de ventas del período.
+ * - totalSales: monto total vendido
+ * - totalOrders: cantidad de pedidos realizados
+ * - averageOrderValue: valor promedio por pedido (ticket promedio)
+ */
 interface SalesMetrics {
   totalSales: number;
   totalOrders: number;
   averageOrderValue: number;
 }
 
+/**
+ * Interfaz que representa las métricas de un producto vendido.
+ * Incluye datos del producto, cantidad total vendida, ingresos generados
+ * y la cantidad de pedidos en los que apareció.
+ */
 interface ProductMetric {
   product: { id: string; name: string; price: number };
   totalQuantity: number;
@@ -13,6 +45,14 @@ interface ProductMetric {
   orders: number;
 }
 
+/**
+ * Interfaz que define las métricas financieras de caja.
+ * - totalOpening: suma de todas las aperturas de caja
+ * - totalClosing: suma de todos los cierres de caja
+ * - totalExpenses: total de gastos registrados
+ * - totalSalesRecorded: ventas registradas en caja
+ * - totalAdjustments: ajustes manuales (positivos o negativos)
+ */
 interface CashMetrics {
   totalOpening: number;
   totalClosing: number;
@@ -21,6 +61,11 @@ interface CashMetrics {
   totalAdjustments: number;
 }
 
+/**
+ * Interfaz que representa las métricas de rendimiento de una mesa.
+ * - totalOrders: cantidad de pedidos atendidos en la mesa
+ * - totalRevenue: ingresos generados por la mesa
+ */
 interface TableMetric {
   id: string;
   name: string;
@@ -29,6 +74,11 @@ interface TableMetric {
   totalRevenue: number;
 }
 
+/**
+ * Interfaz principal que agrupa todos los datos del dashboard.
+ * Incluye el período consultado, métricas de ventas, productos top,
+ * métricas de caja, desempeño de mesas y datos del gráfico diario.
+ */
 interface DashboardData {
   period: { startDate: string; endDate: string };
   sales: SalesMetrics;
@@ -38,17 +88,36 @@ interface DashboardData {
   dailyChart: Array<{ date: string; sales: number; orders: number }>;
 }
 
+/** URL base de la API del backend */
 const API_URL = 'http://localhost:4000';
 
+/**
+ * Componente principal del Dashboard.
+ * Renderiza el panel de control con métricas, gráficos y tablas
+ * de resumen operativo del local.
+ *
+ * @returns JSX del dashboard completo
+ */
 export default function Dashboard() {
+  /** Estado que almacena todos los datos del dashboard recibidos de la API */
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+
+  /** Indicador de carga mientras se obtienen los datos de la API */
   const [loading, setLoading] = useState(true);
+
+  /** Mensaje de error si falla la petición al backend */
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * useEffect: Se ejecuta una sola vez al montar el componente.
+   * Realiza la petición GET /dashboard con el token JWT del usuario
+   * para obtener todas las métricas consolidadas.
+   */
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
         setLoading(true);
+        // Obtener el token JWT almacenado en localStorage para autenticación
         const token = localStorage.getItem('jwt_token');
         const response = await fetch(`${API_URL}/dashboard`, {
           headers: {
@@ -74,6 +143,9 @@ export default function Dashboard() {
     fetchDashboard();
   }, []);
 
+  // --- Estados de carga, error y sin datos ---
+
+  /** Pantalla de carga mientras se obtienen los datos */
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#2F3D46]">
@@ -82,6 +154,7 @@ export default function Dashboard() {
     );
   }
 
+  /** Pantalla de error si falló la petición */
   if (error) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#2F3D46]">
@@ -90,6 +163,7 @@ export default function Dashboard() {
     );
   }
 
+  /** Pantalla cuando no hay datos disponibles */
   if (!dashboardData) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#2F3D46]">
@@ -98,6 +172,7 @@ export default function Dashboard() {
     );
   }
 
+  // Desestructurar los datos del dashboard para facilitar el acceso
   const {
     sales,
     topProducts,
@@ -108,14 +183,18 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#2F3D46] text-white p-8">
+      {/* ===================== Encabezado de la página ===================== */}
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-[#A3B31A] mb-2">Dashboard</h1>
         <p className="text-gray-400">Resumen de operaciones de los últimos 30 días</p>
       </div>
 
+      {/* ===================== Tarjetas KPI principales ===================== */}
+      {/* Grilla de 4 tarjetas con indicadores clave de rendimiento */}
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {/* Tarjeta: Ventas Totales - monto acumulado de todas las ventas */}
         {/* Total Sales */}
         <div className="bg-[#3a4d59] rounded-lg p-6 border border-[#A3B31A]">
           <div className="text-gray-400 text-sm font-semibold mb-2">Ventas Totales</div>
@@ -125,6 +204,7 @@ export default function Dashboard() {
           <div className="text-gray-500 text-xs">{sales.totalOrders} pedidos</div>
         </div>
 
+        {/* Tarjeta: Ticket Promedio - valor promedio de cada pedido */}
         {/* Average Order Value */}
         <div className="bg-[#3a4d59] rounded-lg p-6 border border-[#A3B31A]">
           <div className="text-gray-400 text-sm font-semibold mb-2">Ticket Promedio</div>
@@ -134,6 +214,7 @@ export default function Dashboard() {
           <div className="text-gray-500 text-xs">Por pedido</div>
         </div>
 
+        {/* Tarjeta: Gastos - total de egresos registrados en caja */}
         {/* Total Expenses */}
         <div className="bg-[#3a4d59] rounded-lg p-6 border border-[#A3B31A]">
           <div className="text-gray-400 text-sm font-semibold mb-2">Gastos</div>
@@ -143,6 +224,7 @@ export default function Dashboard() {
           <div className="text-gray-500 text-xs">Registrados</div>
         </div>
 
+        {/* Tarjeta: Ingreso Neto - cálculo de ventas menos gastos */}
         {/* Net Income */}
         <div className="bg-[#3a4d59] rounded-lg p-6 border border-[#A3B31A]">
           <div className="text-gray-400 text-sm font-semibold mb-2">Ingreso Neto</div>
@@ -153,8 +235,11 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ===================== Gráficos y Métricas de Caja ===================== */}
+      {/* Grilla de 2 columnas: gráfico de ventas diarias y resumen de caja */}
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        {/* Gráfico de barras: Tendencia de ventas por día (últimos 7 días) */}
         {/* Daily Sales Trend */}
         <div className="bg-[#3a4d59] rounded-lg p-6 border border-[#A3B31A]">
           <h2 className="text-xl font-bold text-[#A3B31A] mb-4">Ventas por Día (Últimos 7 días)</h2>
@@ -163,6 +248,7 @@ export default function Dashboard() {
               const maxSales = Math.max(...dailyChart.map(p => p.sales), 1); // Evita división por cero
               return (
               <div key={idx} className="flex flex-col items-center gap-2 flex-1">
+                {/* Barra proporcional a las ventas del día respecto al máximo */}
                 <div
                   className="w-full bg-[#39FF8B] rounded-t opacity-80 hover:opacity-100 transition"
                   style={{
@@ -170,12 +256,14 @@ export default function Dashboard() {
                   }}
                   title={`$${point.sales.toFixed(2)} - ${point.orders} pedidos`}
                 />
+                {/* Etiqueta del día (últimos 2 caracteres de la fecha) */}
                 <div className="text-gray-400 text-xs">{point.date.slice(-2)}</div>
               </div>
             )})}
           </div>
         </div>
 
+        {/* Panel de métricas de caja: apertura, ventas, gastos, ajustes y cierre */}
         {/* Cash Metrics */}
         <div className="bg-[#3a4d59] rounded-lg p-6 border border-[#A3B31A]">
           <h2 className="text-xl font-bold text-[#A3B31A] mb-4">Caja</h2>
@@ -204,6 +292,8 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ===================== Tabla de Productos Más Vendidos ===================== */}
+      {/* Ranking de productos ordenados por cantidad vendida */}
       {/* Top Products */}
       <div className="bg-[#3a4d59] rounded-lg p-6 border border-[#A3B31A] mb-8">
         <h2 className="text-xl font-bold text-[#A3B31A] mb-4">Productos Más Vendidos</h2>
@@ -236,6 +326,8 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ===================== Desempeño de Mesas ===================== */}
+      {/* Grilla de tarjetas con estadísticas de cada mesa del local */}
       {/* Table Performance */}
       <div className="bg-[#3a4d59] rounded-lg p-6 border border-[#A3B31A]">
         <h2 className="text-xl font-bold text-[#A3B31A] mb-4">Desempeño de Mesas</h2>
@@ -250,6 +342,7 @@ export default function Dashboard() {
                   </div>
                 </div>
               </div>
+              {/* Estadísticas de la mesa: pedidos atendidos e ingresos generados */}
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
                   <div className="text-gray-400">Pedidos</div>

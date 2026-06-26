@@ -1,3 +1,28 @@
+/**
+ * ============================================================
+ * menu-item.routes.ts
+ * ============================================================
+ * Definición de rutas (endpoints) para la gestión de ítems
+ * del menú del sistema GestoBar.
+ *
+ * Endpoints incluidos:
+ *   GET    /menu-items      - Listar todos los ítems del menú
+ *   GET    /menu-items/:id  - Obtener un ítem específico por ID
+ *   POST   /menu-items      - Crear un nuevo ítem del menú
+ *   PATCH  /menu-items/:id  - Actualizar un ítem existente
+ *   DELETE /menu-items/:id  - Desactivar un ítem (soft delete)
+ *
+ * Nota: La eliminación es lógica (soft delete), cambiando isActive
+ * a false en lugar de eliminar físicamente el registro, para
+ * mantener la integridad con pedidos históricos.
+ *
+ * Todos los endpoints requieren autenticación JWT.
+ *
+ * Tabla(s) relacionada(s): MenuItem, Category
+ * Módulo: Inventario (inventory)
+ * ============================================================
+ */
+
 import type { FastifyInstance } from 'fastify';
 import { MenuItemService } from './menu-item.service';
 import { JwtUser } from '../auth/auth.types';
@@ -9,9 +34,17 @@ import {
   MenuItemParamsSchema
 } from './menu-item.schema';
 
+/**
+ * Registra las rutas de gestión de ítems del menú en la instancia de Fastify.
+ *
+ * @param server - Instancia del servidor Fastify
+ * @param opts - Opciones que incluyen el middleware de autenticación
+ */
 export async function MenuItemRoutes(server: FastifyInstance, opts: { authenticate: any }) {
   const authenticate = opts.authenticate;
 
+  // ── GET /menu-items ───────────────────────────────────────
+  // Lista todos los ítems del menú del negocio.
   server.get(
     '/menu-items',
     {
@@ -28,6 +61,9 @@ export async function MenuItemRoutes(server: FastifyInstance, opts: { authentica
     }
   );
 
+  // ── GET /menu-items/:id ───────────────────────────────────
+  // Obtiene un ítem del menú específico por su ID.
+  // Devuelve 404 si el ítem no existe en el negocio.
   server.get(
     '/menu-items/:id',
     {
@@ -50,6 +86,9 @@ export async function MenuItemRoutes(server: FastifyInstance, opts: { authentica
     }
   );
 
+  // ── POST /menu-items ──────────────────────────────────────
+  // Crea un nuevo ítem del menú en el negocio.
+  // Requiere nombre y precio; descripción y categoría son opcionales.
   server.post(
     '/menu-items',
     {
@@ -70,6 +109,7 @@ export async function MenuItemRoutes(server: FastifyInstance, opts: { authentica
         categoryId?: string;
       };
 
+      // Crea el ítem del menú asociado al negocio del usuario autenticado
       const MenuItem = await MenuItemService.createMenuItem({
         name,
         description,
@@ -82,6 +122,9 @@ export async function MenuItemRoutes(server: FastifyInstance, opts: { authentica
     }
   );
 
+  // ── PATCH /menu-items/:id ─────────────────────────────────
+  // Actualiza parcialmente un ítem del menú existente.
+  // Permite modificar nombre, descripción, precio, categoría y estado.
   server.patch(
     '/menu-items/:id',
     {
@@ -117,6 +160,10 @@ export async function MenuItemRoutes(server: FastifyInstance, opts: { authentica
     }
   );
 
+  // ── DELETE /menu-items/:id ────────────────────────────────
+  // Desactiva un ítem del menú (eliminación lógica / soft delete).
+  // En lugar de eliminar el registro, cambia isActive a false para
+  // preservar la referencia en pedidos históricos.
   server.delete(
     '/menu-items/:id',
     {
@@ -128,9 +175,9 @@ export async function MenuItemRoutes(server: FastifyInstance, opts: { authentica
     async (request, reply) => {
       const user = request.user as JwtUser;
       const { id } = request.params as { id: string };
+      // Soft delete: desactiva el ítem en lugar de eliminarlo físicamente
       await MenuItemService.updateMenuItem(id, user.businessId, { isActive: false });
       return reply.send({ success: true });
     }
   );
 }
-
