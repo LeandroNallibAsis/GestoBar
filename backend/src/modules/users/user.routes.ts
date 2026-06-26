@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * user.routes.ts
+ * ============================================================
+ * Definición de las rutas (endpoints) de la API REST.
+ * Módulo: Backend / users
+ * ============================================================
+ */
 import type { FastifyInstance } from 'fastify';
 import { UserService } from './user.service';
 import { JwtUser } from '../auth/auth.types';

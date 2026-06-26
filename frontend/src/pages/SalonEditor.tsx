@@ -1,10 +1,25 @@
+/**
+ * ============================================================
+ * SalonEditor.tsx
+ * ============================================================
+ * Editor interactivo del salón.
+ * Permite definir una cuadrícula (grid) y asignar áreas (ej: Interior, Patio)
+ * con colores, así como arrastrar y soltar elementos (mesas, sillas).
+ * Sirve como base visual para la organización de mesas.
+ * 
+ * Tabla(s) relacionada(s): SalonLayout, Area (aunque aquí el estado es local por ahora)
+ * Módulo: Frontend / Páginas
+ * ============================================================
+ */
 import { useMemo, useState } from 'react';
 
+/** Coordenadas de una celda en la cuadrícula */
 type GridCell = {
   x: number;
   y: number;
 };
 
+/** Define un área del salón (grupo de celdas pintadas de un color) */
 type Area = {
   id: string;
   name: string;
@@ -12,6 +27,7 @@ type Area = {
   cells: GridCell[];
 };
 
+/** Elemento colocado en la cuadrícula (mesa o silla) */
 type PlacedItem = {
   id: string;
   type: 'table' | 'chair';
@@ -19,6 +35,12 @@ type PlacedItem = {
   y: number;
 };
 
+/**
+ * Genera el array de celdas (x, y) en base a filas y columnas.
+ * @param rows - Cantidad de filas
+ * @param columns - Cantidad de columnas
+ * @returns Array de coordenadas GridCell
+ */
 const createGrid = (rows: number, columns: number) => {
   const cells: GridCell[] = [];
   for (let y = 0; y < rows; y += 1) {
@@ -29,22 +51,42 @@ const createGrid = (rows: number, columns: number) => {
   return cells;
 };
 
+/**
+ * Componente principal del Editor de Salón.
+ */
 const SalonEditor = () => {
+  // Dimensiones de la cuadrícula
   const [rows] = useState(8);
   const [columns] = useState(12);
+  
+  // Celdas actualmente seleccionadas por el usuario
   const [selectedCells, setSelectedCells] = useState<GridCell[]>([]);
+  // Datos del formulario de nueva área
   const [areaName, setAreaName] = useState('Interior');
   const [areaColor, setAreaColor] = useState('#A3B31A');
+  // Lista de áreas creadas
   const [areas, setAreas] = useState<Area[]>([]);
+  // Elementos arrastrados a la cuadrícula
   const [placedItems, setPlacedItems] = useState<PlacedItem[]>([]);
+  // Elemento siendo arrastrado actualmente (drag & drop)
   const [dragType, setDragType] = useState<'table' | 'chair' | null>(null);
 
+  // Memoización de la matriz de celdas para evitar recalcularla en cada render
   const cells = useMemo(() => createGrid(rows, columns), [rows, columns]);
 
+  /**
+   * Busca si una celda específica pertenece a alguna de las áreas creadas.
+   * @param cell - Celda a buscar
+   * @returns El objeto Area o undefined
+   */
   const getAreaForCell = (cell: GridCell) => {
     return areas.find((area) => area.cells.some((c) => c.x === cell.x && c.y === cell.y));
   };
 
+  /**
+   * Alterna la selección de una celda en la cuadrícula.
+   * Si ya está seleccionada, la quita; si no, la agrega.
+   */
   const toggleCell = (cell: GridCell) => {
     const index = selectedCells.findIndex((selected) => selected.x === cell.x && selected.y === cell.y);
     if (index >= 0) {
@@ -54,6 +96,10 @@ const SalonEditor = () => {
     setSelectedCells([...selectedCells, cell]);
   };
 
+  /**
+   * Crea una nueva área utilizando las celdas actualmente seleccionadas
+   * y los valores de nombre/color del formulario.
+   */
   const addArea = () => {
     if (!selectedCells.length) {
       return;
@@ -67,17 +113,25 @@ const SalonEditor = () => {
     };
 
     setAreas([...areas, nextArea]);
-    setSelectedCells([]);
+    setSelectedCells([]); // Limpia la selección
   };
 
+  /**
+   * Elimina un área existente por su ID.
+   */
   const removeArea = (areaId: string) => {
     setAreas(areas.filter((area) => area.id !== areaId));
   };
 
+  /** Evento que inicia el arrastre (Drag) de un elemento (mesa o silla) */
   const onDragStart = (type: 'table' | 'chair') => {
     setDragType(type);
   };
 
+  /** 
+   * Evento que se ejecuta al soltar (Drop) un elemento sobre una celda.
+   * Registra el elemento en la coordenada correspondiente.
+   */
   const onDrop = (event: React.DragEvent<HTMLDivElement>, cell: GridCell) => {
     event.preventDefault();
     if (!dragType) return;
@@ -90,7 +144,7 @@ const SalonEditor = () => {
     };
 
     setPlacedItems((current) => [...current, nextItem]);
-    setDragType(null);
+    setDragType(null); // Resetea el arrastre
   };
 
   return (

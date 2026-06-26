@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * salon.routes.ts
+ * ============================================================
+ * Definición de las rutas (endpoints) de la API REST.
+ * Módulo: Backend / salon
+ * ============================================================
+ */
 import type { FastifyInstance } from 'fastify';
 import type { Prisma } from '@prisma/client';
 import { SalonService } from './salon.service';

@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * user.service.ts
+ * ============================================================
+ * Servicio con las reglas de negocio y validaciones principales.
+ * Módulo: Backend / users
+ * ============================================================
+ */
 import { AuthService } from '../auth/auth.service';
 import { userRepository } from './user.repository';
 import type { User, UserRole } from '@prisma/client';

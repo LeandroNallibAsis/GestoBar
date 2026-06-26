@@ -1,7 +1,26 @@
+/**
+ * ============================================================
+ * dashboard.repository.ts
+ * ============================================================
+ * Repositorio de datos para el Dashboard.
+ * Contiene las consultas a la base de datos (mediante Prisma)
+ * necesarias para generar las métricas, gráficos y reportes
+ * del negocio (ventas, productos más vendidos, caja, etc.).
+ * 
+ * Tabla(s) relacionada(s): Order, OrderItem, MenuItem, CashEntry, Table
+ * Módulo: Backend / Dashboard
+ * ============================================================
+ */
 import { prisma } from '../../prisma';
 import { OrderStatus, CashEntryType } from '@prisma/client';
 
 export const dashboardRepository = {
+  /**
+   * Calcula las métricas generales de ventas (total recaudado, cantidad de órdenes y promedio).
+   * @param businessId ID del negocio
+   * @param startDate Fecha de inicio del filtro
+   * @param endDate Fecha de fin del filtro
+   */
   getSalesMetrics: async (businessId: string, startDate: Date, endDate: Date) => {
     const result = await prisma.order.aggregate({
       where: {
@@ -23,6 +42,13 @@ export const dashboardRepository = {
     };
   },
 
+  /**
+   * Obtiene el top de productos más vendidos en un rango de fechas.
+   * @param businessId ID del negocio
+   * @param startDate Fecha de inicio del filtro
+   * @param endDate Fecha de fin del filtro
+   * @param limit Cantidad máxima de productos a devolver
+   */
   getTopProducts: async (businessId: string, startDate: Date, endDate: Date, limit: number = 5) => {
       const groupedItems = await prisma.orderItem.groupBy({
       by: ['productId'],
@@ -69,6 +95,12 @@ export const dashboardRepository = {
     );
   },
 
+  /**
+   * Obtiene los totales de los movimientos de caja (aperturas, cierres, gastos, ventas).
+   * @param businessId ID del negocio
+   * @param startDate Fecha de inicio
+   * @param endDate Fecha de fin
+   */
   getCashMetrics: async (businessId: string, startDate: Date, endDate: Date) => {
     const entries = await prisma.cashEntry.groupBy({
       by: ['type'],
@@ -91,6 +123,10 @@ export const dashboardRepository = {
     };
   },
 
+  /**
+   * Obtiene el rendimiento por mesa (órdenes pagadas y dinero recaudado).
+   * @param businessId ID del negocio
+   */
   getTableMetrics: async (businessId: string) => {
     const tables = await prisma.table.findMany({
       where: { businessId },
@@ -111,6 +147,11 @@ export const dashboardRepository = {
     }));
   },
 
+  /**
+   * Genera un arreglo de datos para armar un gráfico de ventas diarias de los últimos N días.
+   * @param businessId ID del negocio
+   * @param days Cantidad de días a calcular hacia atrás
+   */
   getDailySalesChart: async (businessId: string, days: number = 7) => {
     const chart = [];
     for (let i = days - 1; i >= 0; i--) {

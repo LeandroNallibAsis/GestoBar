@@ -1,8 +1,23 @@
+/**
+ * ============================================================
+ * UsersPage.tsx
+ * ============================================================
+ * Página de gestión de Usuarios y Empleados.
+ * Permite al administrador crear cuentas de usuario, asignarles roles
+ * (Propietario, Empleado), activarlos/desactivarlos y gestionar los
+ * permisos granulares que definen a qué módulos pueden acceder.
+ * 
+ * Tabla(s) relacionada(s): User, UserPermission
+ * Módulo: Frontend / Páginas
+ * ============================================================
+ */
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../services/api';
 
+/** Roles del sistema */
 type UserRole = 'SuperAdmin' | 'BusinessOwner' | 'Employee';
 
+/** Estructura de datos de un Usuario recibida desde el backend */
 interface User {
   id: string;
   name: string;
@@ -11,7 +26,10 @@ interface User {
   isActive: boolean;
 }
 
-// All configurable permissions shown as checkboxes.
+/** 
+ * Todos los permisos configurables que se muestran como checkboxes
+ * en el modal de permisos de un empleado.
+ */
 const ALL_PERMISSIONS = [
   { key: 'orders:view', label: 'Ver Pedidos' },
   { key: 'orders:create', label: 'Crear Pedidos' },
@@ -25,22 +43,35 @@ const ALL_PERMISSIONS = [
   { key: 'reports:view', label: 'Ver Dashboard y Reportes' }
 ];
 
+/** Diccionario para mostrar nombres amigables de roles en la tabla */
 const ROLE_LABELS: Record<UserRole, string> = {
   SuperAdmin: 'Super Admin',
   BusinessOwner: 'Propietario',
   Employee: 'Empleado'
 };
 
+/**
+ * Componente principal de la página de Usuarios.
+ */
 export default function UsersPage() {
+  // Lista de usuarios registrados
   const [users, setUsers] = useState<User[]>([]);
+  // Estado de carga inicial
   const [loading, setLoading] = useState(true);
+  
+  // Controles del modal de creación/edición de usuario
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  
+  // Controles del modal de permisos
   const [permissionsModalUser, setPermissionsModalUser] = useState<User | null>(null);
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  
+  // Estado de validación/guardado
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
+  // Formulario para crear/editar usuarios
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -48,6 +79,7 @@ export default function UsersPage() {
     role: 'Employee' as UserRole
   });
 
+  /** Obtiene la lista completa de usuarios desde el servidor */
   const fetchUsers = async () => {
     try {
       const data = await apiFetch<User[]>('/users');
@@ -56,8 +88,13 @@ export default function UsersPage() {
     finally { setLoading(false); }
   };
 
+  /** Cargar usuarios al montar el componente */
   useEffect(() => { fetchUsers(); }, []);
 
+  /**
+   * Abre el modal para crear o editar un usuario.
+   * @param user - Usuario a editar. Si no se provee, se abre para crear uno nuevo.
+   */
   const handleOpenModal = (user?: User) => {
     setError('');
     if (user) {
@@ -70,6 +107,9 @@ export default function UsersPage() {
     setIsModalOpen(true);
   };
 
+  /**
+   * Procesa el envío del formulario del usuario (Creación o Actualización).
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -88,6 +128,9 @@ export default function UsersPage() {
     } finally { setSaving(false); }
   };
 
+  /**
+   * Activa o desactiva (Soft Delete / Ban) a un usuario.
+   */
   const handleToggleActive = async (user: User) => {
     try {
       await apiFetch(`/users/${user.id}`, {
@@ -98,6 +141,10 @@ export default function UsersPage() {
     } catch (e) { console.error(e); }
   };
 
+  /**
+   * Abre el modal para asignar permisos granulares a un empleado específico.
+   * Consulta al servidor qué permisos tiene actualmente asignados.
+   */
   const openPermissionsModal = async (user: User) => {
     setPermissionsModalUser(user);
     try {
@@ -108,12 +155,18 @@ export default function UsersPage() {
     }
   };
 
+  /**
+   * Agrega o quita un permiso del estado local del formulario de permisos.
+   */
   const togglePermission = (key: string) => {
     setUserPermissions((prev) =>
       prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
     );
   };
 
+  /**
+   * Envía al servidor la lista actualizada de permisos del empleado seleccionado.
+   */
   const savePermissions = async () => {
     if (!permissionsModalUser) return;
     setSaving(true);

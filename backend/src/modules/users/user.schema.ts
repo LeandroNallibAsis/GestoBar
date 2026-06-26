@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * user.schema.ts
+ * ============================================================
+ * Esquemas de validación (Zod/Fastify) para los endpoints de la API.
+ * Módulo: Backend / users
+ * ============================================================
+ */
 export const userResponseSchema = {
   type: 'object',
   properties: {

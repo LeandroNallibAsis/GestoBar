@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * dashboard.schema.ts
+ * ============================================================
+ * Esquemas de validación (Zod/Fastify) para los endpoints de la API.
+ * Módulo: Backend / dashboard
+ * ============================================================
+ */
 export const metricsQuerySchema = {
   type: 'object',
   properties: {

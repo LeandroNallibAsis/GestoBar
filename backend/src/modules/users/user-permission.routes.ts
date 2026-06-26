@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * user-permission.routes.ts
+ * ============================================================
+ * Definición de las rutas (endpoints) de la API REST.
+ * Módulo: Backend / users
+ * ============================================================
+ */
 import type { FastifyInstance } from 'fastify';
 import { JwtUser } from '../auth/auth.types';
 import { userPermissionRepository } from './user-permission.repository';

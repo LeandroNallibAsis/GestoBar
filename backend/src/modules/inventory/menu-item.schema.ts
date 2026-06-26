@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * menu-item.schema.ts
+ * ============================================================
+ * Esquemas de validación (Zod/Fastify) para los endpoints de la API.
+ * Módulo: Backend / inventory
+ * ============================================================
+ */
 export const MenuItemResponseSchema = {
   type: 'object',
   properties: {

@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * salon.service.ts
+ * ============================================================
+ * Servicio con las reglas de negocio y validaciones principales.
+ * Módulo: Backend / salon
+ * ============================================================
+ */
 import type { Prisma } from '@prisma/client';
 import { salonRepository } from './salon.repository';
 

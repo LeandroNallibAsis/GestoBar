@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * user-permission.repository.ts
+ * ============================================================
+ * Repositorio de datos. Encapsula las consultas a la base de datos.
+ * Módulo: Backend / users
+ * ============================================================
+ */
 import { prisma } from '../../prisma';
 
 // Repository for managing individual user permissions.

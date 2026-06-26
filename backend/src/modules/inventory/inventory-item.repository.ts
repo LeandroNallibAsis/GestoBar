@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * inventory-item.repository.ts
+ * ============================================================
+ * Repositorio de datos. Encapsula las consultas a la base de datos.
+ * Módulo: Backend / inventory
+ * ============================================================
+ */
 import { prisma } from '../../prisma';
 
 // Repository layer for InventoryItem persistence and queries.

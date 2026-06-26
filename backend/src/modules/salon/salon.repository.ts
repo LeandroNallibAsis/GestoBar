@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * salon.repository.ts
+ * ============================================================
+ * Repositorio de datos. Encapsula las consultas a la base de datos.
+ * Módulo: Backend / salon
+ * ============================================================
+ */
 import { prisma } from '../../prisma';
 import type { SalonLayout } from '@prisma/client';
 import type { Prisma } from '@prisma/client';

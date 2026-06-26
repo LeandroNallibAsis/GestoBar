@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * salon.schema.ts
+ * ============================================================
+ * Esquemas de validación (Zod/Fastify) para los endpoints de la API.
+ * Módulo: Backend / salon
+ * ============================================================
+ */
 export const salonLayoutResponseSchema = {
   type: 'object',
   properties: {

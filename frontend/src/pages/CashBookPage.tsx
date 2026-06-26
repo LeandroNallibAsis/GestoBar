@@ -1,3 +1,15 @@
+/**
+ * ============================================================
+ * CashBookPage.tsx
+ * ============================================================
+ * Esta página representa el Libro de Caja (Cash Book) del sistema.
+ * Permite visualizar el historial de movimientos de dinero (ingresos y egresos),
+ * calcular el saldo actual de la caja y registrar nuevos movimientos manuales.
+ * 
+ * Tabla(s) relacionada(s): CashEntry
+ * Módulo: Frontend / Páginas
+ * ============================================================
+ */
 import React, { useState, useEffect } from 'react';
 import { apiFetch } from '../services/api';
 
@@ -9,16 +21,30 @@ interface CashEntry {
   createdAt: string;
 }
 
+/**
+ * Componente principal de la página del Libro de Caja.
+ * Renderiza la vista general con el saldo actual, tabla de movimientos
+ * y el modal para crear nuevos registros.
+ */
 export default function CashBookPage() {
+  // Estado para almacenar la lista de movimientos obtenidos de la API
   const [entries, setEntries] = useState<CashEntry[]>([]);
+  // Estado para mostrar un indicador de carga mientras se obtienen los datos
   const [loading, setLoading] = useState(true);
+  // Estado que controla la visibilidad del modal de "Nuevo Movimiento"
   const [isModalOpen, setIsModalOpen] = useState(false);
+  // Estado del formulario para crear un nuevo movimiento
+
   const [formData, setFormData] = useState({
     type: 'EXPENSE',
     amount: 0,
     description: ''
   });
 
+  /**
+   * Obtiene la lista de movimientos de caja desde el backend.
+   * Actualiza el estado `entries` con la respuesta y desactiva el estado `loading`.
+   */
   const fetchEntries = async () => {
     try {
       const data = await apiFetch<CashEntry[]>('/cash-entries');
@@ -30,10 +56,20 @@ export default function CashBookPage() {
     }
   };
 
+  /**
+   * Efecto de inicialización.
+   * Se ejecuta una sola vez al cargar la página para obtener los movimientos.
+   */
   useEffect(() => {
     fetchEntries();
   }, []);
 
+  /**
+   * Maneja el envío del formulario para registrar un nuevo movimiento de caja.
+   * Hace una petición POST a la API y actualiza la lista local de movimientos.
+   * 
+   * @param e - Evento de envío del formulario
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -49,6 +85,10 @@ export default function CashBookPage() {
     }
   };
 
+  /**
+   * Calcula el saldo actual de la caja sumando los ingresos y restando los egresos.
+   * 'OPENING' y 'SALE' suman al saldo. 'CLOSING' y 'EXPENSE' restan.
+   */
   const currentBalance = entries.reduce((acc, entry) => {
     if (['OPENING', 'SALE'].includes(entry.type)) return acc + entry.amount;
     if (['CLOSING', 'EXPENSE'].includes(entry.type)) return acc - entry.amount;

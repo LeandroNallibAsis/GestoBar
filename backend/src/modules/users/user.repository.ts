@@ -1,3 +1,11 @@
+/**
+ * ============================================================
+ * user.repository.ts
+ * ============================================================
+ * Repositorio de datos. Encapsula las consultas a la base de datos.
+ * Módulo: Backend / users
+ * ============================================================
+ */
 import { prisma } from '../../prisma';
 import type { User, UserRole } from '@prisma/client';
 
